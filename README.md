@@ -1,100 +1,109 @@
-# 主日學點名
+# Sunday School Attendance
 
-內湖蒙式角落主日學的點名小工具。老師打開網址、輸入教室密碼就能點名，不用登入帳號。點名紀錄存在 Google 試算表，負責人直接打開試算表就能看。
-
-```
-GitHub Pages（畫面）──fetch──▶ Apps Script（API，檢查教室密碼）──▶ Google 試算表（資料）
-```
-
-同一份 `src/index.html` 也能直接由 Apps Script 提供（備用入口），兩邊用同一份資料。
-
-- 前端：`src/index.html`，大按鈕、圓體字、手機優先的版面
-- 後端：`src/Code.gs`，Google Apps Script，讀寫試算表
-- 資料：試算表裡的「孩子名單」「點名紀錄」「統計」三個工作表
-
-## 功能
-
-- **點名**：自動選好今天的日期和場次（主日／週三／週四／週六），按孩子名字變綠色就完成，再按一次取消
-- **新朋友**：右下角「＋」輸入名字，會標記成當次的新朋友
-- **統計**：本月點名次數、平均人數、來過的孩子、新朋友、最近 12 次長條圖，以及超過 3 週沒來的孩子
-- **名單**：改名字、改年齡層，不再來的孩子可以「收起來」，紀錄保留
-- **教室密碼**：第一次打開輸入 5 位數，裝置會記住。所有讀寫都要在 Apps Script 端比對密碼，拿到網址的陌生人看不到任何資料
-- 多台裝置同時點名：每 20 秒自動同步一次
-
-## 部署（第一次，約 10 分鐘）
-
-1. 在 Google 雲端硬碟新增一份試算表，命名為「主日學點名」
-2. 試算表選單：**擴充功能 › Apps Script**
-3. 把 `src/Code.gs` 的內容貼到 `程式碼.gs`
-4. 左側「檔案 ＋ › HTML」，命名為 `index`，貼上 `src/index.html`
-5. 左側齒輪「專案設定」：
-   - 勾選「在編輯器中顯示 appsscript.json」，把內容換成 `src/appsscript.json`
-   - 「指令碼屬性」新增：屬性 `PIN`，值是教室密碼（5 位數字；要改位數，改 `src/index.html` 的 `PIN_LEN`）
-6. 回到編輯器，上方函式選 `setup`，按「執行」，依提示授權
-   （會看到「Google 尚未驗證這個應用程式」，選「進階 › 前往（不安全）」，因為這是你自己的程式）
-7. 右上角 **部署 › 新增部署作業 › 類型：網頁應用程式**
-   - 執行身分：**我**
-   - 誰可以存取：**所有人**
-8. 複製網頁應用程式網址，傳給同工，或加到平板主畫面
-
-之後改程式：**部署 › 管理部署作業 › 編輯 › 版本：新版本**，網址不變。
-
-## 部署流程
+A small roll-call tool for the 內湖蒙式角落 Sunday school. Teachers open a link, enter the classroom PIN, and take attendance. No account or login needed. Records are stored in a Google Sheet that the coordinator can open directly.
 
 ```
-feature 分支 ──PR──▶ CI：語法檢查
-                     │ 合併
-                     ▼
-                   main ─┬─▶ pages.yml：語法檢查 → 注入 API 網址 → GitHub Pages（前端）
-                         └─▶ deploy.yml：語法檢查 → clasp push → 更新 Apps Script 部署（後端，網址不變）
+GitHub Pages (UI) ──fetch──▶ Apps Script (API, checks the classroom PIN) ──▶ Google Sheet (data)
 ```
 
-- `ci.yml`：PR 和非 main 分支，只跑 `node scripts/check.mjs`
-- `pages.yml`：`src/index.html` 有改動才重新發佈前端
-- `deploy.yml`：推到 main 就更新 Apps Script 後端
-- 出問題要退版：`git revert` 後推上 main，或在 Apps Script「管理部署作業」把版本切回上一版
+The same `src/index.html` can also be served by Apps Script itself as a backup entry point. Both use the same data.
 
-### 一次性設定：GitHub Pages
+- Frontend: `src/index.html`. Big buttons, rounded fonts, mobile-first layout
+- Backend: `src/Code.gs`. Google Apps Script that reads and writes the sheet
+- Data: three tabs in the spreadsheet: 孩子名單 (roster), 點名紀錄 (attendance records), 統計 (stats)
 
-1. 先照上面「部署」手動部署 Apps Script，複製網頁應用程式網址（`https://script.google.com/macros/s/…/exec`）
-2. repo › Settings › Secrets and variables › Actions › **Variables** 分頁，新增 `APPS_SCRIPT_URL` = 上面的網址
-3. repo › Settings › Pages › Source 選 **GitHub Actions**
-4. 免費帳號的 GitHub Pages 只能用在 **public repo**：程式碼會公開，但裡面沒有孩子資料，密碼也只在 Apps Script 的指令碼屬性裡
-5. 推到 main，或在 Actions 手動跑「Deploy to GitHub Pages」，網址是 `https://jerseysu.github.io/sunday-school-attendance/`
+## Features
 
-### 一次性設定：Apps Script 自動部署
+- **Roll call**: today's date and session (Sunday / Wednesday / Thursday / Saturday) are picked automatically. Tap a child's name to mark them present (it turns green); tap again to undo
+- **Newcomers**: tap "+" in the bottom-right corner to add a name. The child is tagged as a newcomer for that session
+- **Stats**: sessions this month, average attendance, children who came, newcomers, a bar chart of the last 12 sessions, and children who haven't come for more than 3 weeks
+- **Roster**: rename a child, change the age group, or hide children who no longer come (their records are kept)
+- **Classroom PIN**: enter the 5-digit PIN once and the device remembers it. Every read and write is checked against the PIN on the Apps Script side, so someone who only has the link sees no data
+- Several devices can take attendance at once; the page syncs every 20 seconds
 
-1. 先照上面「部署」手動部署一次，記下兩個 ID：
-   - **Script ID**：Apps Script › 專案設定 › 指令碼 ID
-   - **Deployment ID**：部署 › 管理部署作業 › 網頁應用程式那一筆的「部署作業 ID」
-2. 開啟 Apps Script API：https://script.google.com/home/usersettings
-3. 在自己電腦登入 clasp，產生憑證：
+## First-time setup (about 10 minutes)
+
+1. Create a new Google Sheet in Google Drive, for example "主日學點名"
+2. In the sheet, open **Extensions › Apps Script**. The script must be created from the sheet (bound to it); a standalone project from script.google.com cannot find the data
+3. Paste the contents of `src/Code.gs` into `Code.gs`
+4. Click **Files ＋ › HTML**, name it `index` (the editor adds `.html`), and paste `src/index.html`
+5. Open **Project Settings** (gear icon on the left):
+   - Check **Show "appsscript.json" manifest file in editor** and replace its contents with `src/appsscript.json`
+   - Under **Script Properties**, add a property `PIN` whose value is the classroom PIN (5 digits; to change the length, edit `PIN_LEN` in `src/index.html`)
+6. Back in the editor, pick `setup` from the function menu and click **Run**. Authorize when asked
+   (Google shows "Google hasn't verified this app"; choose **Advanced › Go to … (unsafe)**, since this is your own script)
+7. Top right: **Deploy › New deployment › Select type: Web app**
+   - Execute as: **Me**
+   - Who has access: **Anyone**. Do not choose "Anyone with Google account": it sends visitors who are not signed in to the Google login page, and GitHub Pages then shows "連不上，請確認網路" (cannot connect) after the PIN is entered
+8. Copy the web app URL. Test it in a private/incognito window: you should see the PIN keypad, not a Google sign-in page
+
+To update the code manually later: **Deploy › Manage deployments › ✏️ › Version: New version › Deploy**. The URL stays the same.
+
+## Deployment flow
+
+```
+feature branch ──PR──▶ CI: syntax check
+                        │ merge
+                        ▼
+                      main ─┬─▶ pages.yml: syntax check → inject API URL → GitHub Pages (frontend)
+                            └─▶ deploy.yml: syntax check → clasp push → update Apps Script deployment (backend, same URL)
+```
+
+- `ci.yml`: runs `node scripts/check.mjs` on PRs and non-main branches
+- `pages.yml`: republishes the frontend when `src/index.html` changes
+- `deploy.yml`: updates the Apps Script backend on every push to main. It is skipped if the clasp secrets are not set
+- To roll back: `git revert` and push to main, or switch the version back in Apps Script under **Manage deployments**
+
+### One-time setup: GitHub Pages
+
+1. Deploy Apps Script manually as described above and copy the web app URL (`https://script.google.com/macros/s/…/exec`)
+2. Repo › **Settings › Secrets and variables › Actions › Variables** tab: add `APPS_SCRIPT_URL` = that URL. Put it under **Repository variables**, not Secrets or Environment variables
+3. Repo › **Settings › Pages › Source**: choose **GitHub Actions**
+4. On a free GitHub account, Pages only works for a **public repo**. The code becomes public, but it contains no children's data, and the PIN lives only in the Apps Script script properties
+5. Push to main, or run "Deploy to GitHub Pages" from the Actions tab. The site is at `https://jerseysu.github.io/sunday-school-attendance/`
+
+### One-time setup: automatic Apps Script deployment
+
+1. Deploy manually once as described above and note two IDs:
+   - **Script ID**: Apps Script › Project Settings › IDs › Script ID
+   - **Deployment ID**: the part between `/s/` and `/exec` in the web app URL (also shown under **Manage deployments**)
+2. Turn on the Apps Script API: https://script.google.com/home/usersettings
+3. Log in with clasp on your own computer to create the credentials:
    ```bash
-   npm install -g @google/clasp@2.4.2
-   clasp login            # 會產生 ~/.clasprc.json
-   cat ~/.clasprc.json    # 整段複製
+   npx @google/clasp@2.4.2 login   # creates ~/.clasprc.json
+   cat ~/.clasprc.json | pbcopy    # copy the whole file (macOS)
    ```
-4. GitHub repo › Settings › Secrets and variables › Actions，新增三個 secret：
-   | 名稱 | 內容 |
+4. Repo › **Settings › Secrets and variables › Actions**, add three repository secrets:
+   | Name | Value |
    |---|---|
-   | `CLASPRC_JSON` | `~/.clasprc.json` 的完整內容 |
+   | `CLASPRC_JSON` | the full contents of `~/.clasprc.json` |
    | `SCRIPT_ID` | Script ID |
    | `DEPLOYMENT_ID` | Deployment ID |
-5. （建議）Settings › Environments 建 `production`，可以加「需要核准」，避免誤推就上線
+5. (Optional) Under **Settings › Environments**, create `production` and require approval, so an accidental push doesn't go live
 
-### 本機開發
+Once this is set up, GitHub is the source of truth: every push overwrites the code in Apps Script, so don't edit code in the Apps Script editor.
+
+### Local development
 
 ```bash
-cp .clasp.json.example .clasp.json   # 填入 Script ID
-node scripts/check.mjs               # 語法檢查
-clasp push                           # 推到 Apps Script 的「測試部署」（/dev 網址）先試
+cp .clasp.json.example .clasp.json   # fill in the Script ID
+node scripts/check.mjs               # syntax check
+npx @google/clasp@2.4.2 push         # push to the Apps Script test deployment (/dev URL) to try it first
 ```
 
-`.clasp.json`、`.clasprc.json` 和密碼都不進 git。密碼只存在 Apps Script 的指令碼屬性。
+`.clasp.json`, `.clasprc.json` and the PIN are never committed. The PIN only lives in the Apps Script script properties.
 
-## 注意
+## Troubleshooting
 
-- 孩子名字是個資：網址只傳給同工，不要貼到公開群組
-- 個人 Google 帳號部署的網頁，上方會有一行「此應用程式由 Google Apps Script 使用者建立」，這是 Google 固定的提示
-- 頁首 logo 會跟著場次換：主日「蒙式主日學」、週六「有一村」、週三週四「蒙式角落」。logo 原檔在 `assets/`，嵌在 `src/index.html` 裡
-- 設計稿（Claude Design）：https://claude.ai/artifact/KQqfXTZoF9ciRMTRyUYqvc
+- **"No HTML file named index was found"**: the `index` HTML file is missing from the Apps Script project (step 4)
+- **"連不上，請確認網路" after entering the PIN on GitHub Pages**: the deployment's access is not **Anyone**. Open the `/exec` URL in a private window; if you see a Google sign-in page, edit the deployment and set Who has access to **Anyone**
+- **"出錯了：…" on the PIN screen**: the backend returned an error. Check **Executions** in the Apps Script editor for details. Common causes: `PIN` script property not set, or `setup` not run yet
+- **Dates show as "NaN/NaN"**: Google Sheets turned text such as `2026-11-16` or `0-3` into dates. The current code writes these cells as plain text; run `setup` once to repair older rows
+- **統計 tab shows `#N/A`**: there are no attendance records yet; it fills in after the first roll call
+
+## Notes
+
+- Children's names are personal data. Share the link only with co-workers, never in public groups
+- Web apps deployed from a personal Google account show a banner "This application was created by a Google Apps Script user". This is a fixed Google notice
+- The header logo changes with the session: Sunday 蒙式主日學, Saturday 有一村, Wednesday/Thursday 蒙式角落. The original files are in `assets/` and are embedded in `src/index.html`
+- Design (Claude Design): https://claude.ai/artifact/KQqfXTZoF9ciRMTRyUYqvc
