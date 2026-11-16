@@ -123,6 +123,19 @@ td.num{font-family:var(--num);font-weight:700}
 .opt{font-size:14px;color:var(--muted);background:var(--bg);border-radius:10px;padding:2px 8px}
 .centry{border:2px dashed var(--line);border-radius:18px;padding:10px;display:flex;flex-direction:column;gap:8px}
 .centry .choice button{font-size:18px;padding:6px}
+.faiths{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.faiths button{display:flex;align-items:center;justify-content:center;gap:8px}
+.fdot{width:12px;height:12px;border-radius:50%;flex:none;background:#B9CCDC}
+.fdot[data-f="基督徒"]{background:#3BB58A}.fdot[data-f="慕道中"]{background:#F2A65A}.fdot[data-f="還沒信"]{background:#8CA3B8}
+.flabel{font-size:16px;color:var(--muted)}
+.phone .pnum{font-size:16px;letter-spacing:0}.phone .btn{padding:0 10px;font-size:15px}.call{padding:0 12px}
+.lfilter button{font-size:16px;white-space:nowrap;padding:6px 4px}
+.phone .who{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:64px}
+.fpill{display:inline-flex;align-items:center;gap:5px;font-size:13px;border-radius:999px;padding:1px 8px;background:#F1F5F9;color:#4E6A82;white-space:nowrap}
+.fpill .fdot{width:8px;height:8px}
+.fpill[data-f="基督徒"]{background:#E3F5EC;color:#1E6B4E}.fpill[data-f="慕道中"]{background:#FFF0E4;color:#8A4A12}.fpill[data-f="還沒信"]{background:#EEF2F6;color:#3E5568}
+.nophonetxt{flex:1;font-size:15px;color:var(--muted)}
+.carehint{margin:0 0 8px;font-size:15px;color:#8A4A12;background:#FFF0E4;border-radius:12px;padding:6px 10px}
 .cprow{display:flex;gap:8px}
 .cprow input{flex:1;min-width:0;font-family:var(--num);font-size:22px;letter-spacing:1px;padding:8px 12px;border:3px solid var(--line);border-radius:14px;background:var(--bg)}
 .addparent{border:2px dashed var(--sky);background:#fff;color:var(--sky);border-radius:14px;padding:8px;font-size:18px}
@@ -272,6 +285,7 @@ td.num{font-family:var(--num);font-weight:700}
       <h2>孩子名單</h2>
       <p class="hint">改名字、改年齡層、補家長電話，或把不再來的孩子先「收起來」，點名畫面就不會顯示。紀錄都會保留。</p>
       <div class="choice lfilter" id="listFilter"></div>
+      <p class="carehint" id="careHint" hidden>家長還在慕道或還沒信主的家庭，可以多關心、一起代禱。</p>
       <div id="kidList"></div>
     </div>
   </section>
@@ -464,7 +478,11 @@ td.num{font-family:var(--num);font-weight:700}
   const RELS=["爸爸","媽媽","其他"],MAXC=2;
   let mContacts=[],mOrig="[]",mLoaded=true;
   const digits=p=>String(p||"").replace(/\D/g,"");
-  const validContacts=()=>mContacts.map(c=>({rel:c.rel,phone:c.phone.trim()})).filter(c=>digits(c.phone).length>=6);
+  // 家長信仰：只有老師（有教室密碼）看得到；空白＝不清楚
+  const FAITHS=[["基督徒","基督徒"],["慕道中","慕道中"],["還沒信","還沒信"],["","不清楚"]];
+  const isCare=f=>f==="慕道中"||f==="還沒信";
+  const hasPhone=c=>digits(c.phone).length>=6;
+  const validContacts=()=>mContacts.map(c=>({rel:c.rel,phone:c.phone.trim(),faith:c.faith||""})).filter(c=>hasPhone(c)||c.faith);
   function drawContacts(msg){
     const box=$("mContacts");
     if(msg){box.innerHTML=`<p class="hint" style="margin:0">${esc(msg)}</p>`;$("mAddParent").hidden=true;return}
@@ -472,7 +490,9 @@ td.num{font-family:var(--num);font-weight:700}
       <div class="choice" role="group" aria-label="第 ${i+1} 位家長的稱呼">${RELS.map(r=>`<button type="button" data-ci="${i}" data-rel="${r}" aria-pressed="${c.rel===r}">${r}</button>`).join("")}</div>
       <label for="mPhone${i}">手機號碼</label>
       <div class="cprow"><input type="tel" inputmode="tel" id="mPhone${i}" data-ci="${i}" maxlength="20" autocomplete="off" placeholder="0912-345-678" value="${esc(c.phone)}">
-      <button class="btn danger" type="button" data-cdel="${i}" aria-label="刪除第 ${i+1} 位家長">刪除</button></div></div>`).join("");
+      <button class="btn danger" type="button" data-cdel="${i}" aria-label="刪除第 ${i+1} 位家長">刪除</button></div>
+      <span class="flabel" id="mFaithL${i}">信仰（只有老師看得到）</span>
+      <div class="choice faiths" role="group" aria-labelledby="mFaithL${i}">${FAITHS.map(([v,t])=>`<button type="button" data-ci="${i}" data-faith="${v}" aria-pressed="${(c.faith||"")===v}"><span class="fdot" data-f="${v}"></span>${t}</button>`).join("")}</div></div>`).join("");
     $("mAddParent").hidden=mContacts.length>=MAXC;
   }
   async function openModal(editId){
@@ -485,17 +505,17 @@ td.num{font-family:var(--num);font-weight:700}
     $("mSave").textContent=k?"儲存":"加入並點名";
     syncChoice();$("mErr").textContent="";
     $("modal").classList.add("show");setTimeout(()=>$("mName").focus(),50);
-    if(!k){mContacts=[{rel:"媽媽",phone:""}];mOrig="[]";mLoaded=true;drawContacts();return}
+    if(!k){mContacts=[{rel:"媽媽",phone:"",faith:""}];mOrig="[]";mLoaded=true;drawContacts();return}
     const cached=state.contacts&&state.contacts[editId];
-    if(cached||(state.contacts&&!k.hasContact)){mContacts=(cached||[]).map(c=>({...c}));mLoaded=true}
+    if(cached||(state.contacts&&!k.hasContact)){mContacts=(cached||[]).map(c=>({faith:"",...c}));mLoaded=true}
     else{
       mLoaded=false;drawContacts("讀取家長電話中…");
-      try{mContacts=(await api("getContacts",editId)).map(c=>({...c}));mLoaded=true}
+      try{mContacts=(await api("getContacts",editId)).map(c=>({faith:"",...c}));mLoaded=true}
       catch(e){console.error(e);if(state.editId===editId)drawContacts("家長電話讀不到，這次先不改電話。");return}
       if(state.editId!==editId||!$("modal").classList.contains("show"))return;
     }
     mOrig=JSON.stringify(validContacts());
-    if(!mContacts.length)mContacts=[{rel:"媽媽",phone:""}];
+    if(!mContacts.length)mContacts=[{rel:"媽媽",phone:"",faith:""}];
     drawContacts();
   }
   function closeModal(){$("modal").classList.remove("show")}
@@ -515,7 +535,7 @@ td.num{font-family:var(--num);font-weight:700}
         const id=state.editId;
         const k=state.kids.get(id);if(k){k.name=name;k.group=mGroup}
         const phonesChanged=mLoaded&&JSON.stringify(list)!==mOrig;
-        if(phonesChanged){if(k)k.hasContact=list.length>0;if(state.contacts)state.contacts[id]=list}
+        if(phonesChanged){if(k)k.hasContact=list.some(hasPhone);if(state.contacts)state.contacts[id]=list}
         closeModal();render();
         queue(()=>api("updateKid",id,{name,group:mGroup}));
         if(phonesChanged)queue(()=>api("setContacts",id,list));
@@ -579,12 +599,15 @@ td.num{font-family:var(--num);font-weight:700}
   }
   function phonesHtml(id,k){
     const list=state.contacts?state.contacts[id]||[]:null;
-    if(list&&list.length)return list.map((c,i)=>{const key=id+"_"+i,open=state.shown.has(key);
-      return `<div class="phone"><span class="rel">${esc(c.rel)}</span><span class="pnum">${esc(open?c.phone:maskPhone(c.phone))}</span>
+    const addBtn=`<button class="nophone" type="button" data-edit="${esc(id)}"><span>還沒有家長電話</span><b>＋ 補上</b></button>`;
+    if(list&&list.length)return list.map((c,i)=>{const key=id+"_"+i,open=state.shown.has(key),f=c.faith||"";
+      const who=`<span class="who"><span class="rel">${esc(c.rel)}</span><span class="fpill" data-f="${esc(f)}"><span class="fdot" data-f="${esc(f)}"></span>${esc(f||"不清楚")}</span></span>`;
+      if(!hasPhone(c))return `<div class="phone">${who}<span class="nophonetxt">沒有電話</span></div>`;
+      return `<div class="phone">${who}<span class="pnum">${esc(open?c.phone:maskPhone(c.phone))}</span>
       <button class="btn" type="button" data-show="${esc(key)}" aria-label="${open?"隱藏":"顯示"}${esc(k.name)}${esc(c.rel)}的電話">${open?"隱藏":"顯示"}</button>
-      <a class="call" href="tel:${esc(digits(c.phone))}" aria-label="打給${esc(k.name)}的${esc(c.rel)}">撥打</a></div>`}).join("");
+      <a class="call" href="tel:${esc(digits(c.phone))}" aria-label="打給${esc(k.name)}的${esc(c.rel)}">撥打</a></div>`}).join("")+(list.some(hasPhone)?"":addBtn);
     if(!list&&k.hasContact)return `<span class="hint" style="margin:0;font-size:16px">電話讀取中…</span>`;
-    return `<button class="nophone" type="button" data-edit="${esc(id)}"><span>還沒有家長電話</span><b>＋ 補上</b></button>`;
+    return addBtn;
   }
   function renderList(){
     loadContacts();
@@ -592,9 +615,14 @@ td.num{font-family:var(--num);font-weight:700}
     const all=[...state.kids.entries()].sort((a,b)=>((a[1].active===false)-(b[1].active===false))||byName(a,b));
     const missing=all.filter(([,k])=>k.active!==false&&!k.hasContact).length;
     if(state.listFilter==="missing"&&!missing)state.listFilter="all";
-    $("listFilter").innerHTML=[["all","全部 "+all.length],["missing","缺電話 "+missing]]
+    // 關懷家庭：家長有人「慕道中」或「還沒信」（電話資料讀到之後才算得出來）
+    const care=([id,k])=>k.active!==false&&state.contacts&&(state.contacts[id]||[]).some(c=>isCare(c.faith));
+    const careN=state.contacts?all.filter(care).length:"…";
+    $("listFilter").innerHTML=[["all","全部 "+all.length],["care","關懷家庭 "+careN],["missing","缺電話 "+missing]]
       .map(([f,t])=>`<button type="button" data-filter="${f}" aria-pressed="${state.listFilter===f}">${t}</button>`).join("");
-    const kids=state.listFilter==="missing"?all.filter(([,k])=>k.active!==false&&!k.hasContact):all;
+    const kids=state.listFilter==="missing"?all.filter(([,k])=>k.active!==false&&!k.hasContact)
+      :state.listFilter==="care"?all.filter(care):all;
+    $("careHint").hidden=state.listFilter!=="care";
     $("kidList").innerHTML=kids.length?kids.map(([id,k])=>{const off=k.active===false;
       return `<div class="row${off?" off":""}"><span class="nm">${esc(k.name)}</span><span class="pill new">${k.group==="3-6"?"3–6 歲":"0–3 歲"}</span><span class="hint" style="margin:0;font-size:16px">${seen.get(id)?"最後一次："+short(seen.get(id)):"還沒點過名"}</span>
       <button class="btn" type="button" data-edit="${esc(id)}">修改</button>
@@ -761,10 +789,11 @@ td.num{font-family:var(--num);font-weight:700}
   $("listFilter").addEventListener("click",e=>{const b=e.target.closest("[data-filter]");if(b){state.listFilter=b.dataset.filter;renderList()}});
   $("mContacts").addEventListener("click",e=>{
     const r=e.target.closest("[data-rel]");if(r){mContacts[+r.dataset.ci].rel=r.dataset.rel;drawContacts();return}
-    const d=e.target.closest("[data-cdel]");if(d){mContacts.splice(+d.dataset.cdel,1);if(!mContacts.length)mContacts=[{rel:"媽媽",phone:""}];drawContacts()}
+    const fb=e.target.closest("[data-faith]");if(fb){mContacts[+fb.dataset.ci].faith=fb.dataset.faith;drawContacts();return}
+    const d=e.target.closest("[data-cdel]");if(d){mContacts.splice(+d.dataset.cdel,1);if(!mContacts.length)mContacts=[{rel:"媽媽",phone:"",faith:""}];drawContacts()}
   });
   $("mContacts").addEventListener("input",e=>{const i=e.target.dataset.ci;if(i!=null&&e.target.tagName==="INPUT")mContacts[+i].phone=e.target.value});
-  $("mAddParent").addEventListener("click",()=>{if(mContacts.length<MAXC){mContacts.push({rel:mContacts.some(c=>c.rel==="媽媽")?"爸爸":"媽媽",phone:""});drawContacts();$("mPhone"+(mContacts.length-1)).focus()}});
+  $("mAddParent").addEventListener("click",()=>{if(mContacts.length<MAXC){mContacts.push({rel:mContacts.some(c=>c.rel==="媽媽")?"爸爸":"媽媽",phone:"",faith:""});drawContacts();$("mPhone"+(mContacts.length-1)).focus()}});
 
   $("signupBanner").addEventListener("click",openSignups);
   $("sClose").addEventListener("click",closeSignups);

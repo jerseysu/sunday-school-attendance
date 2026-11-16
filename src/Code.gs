@@ -18,6 +18,7 @@ const SHEET_CONFIG = '設定';
 const RELS_ = ['爸爸', '媽媽', '其他'];
 const SLOTS_ = ['sun', 'wed', 'thu', 'sat'];
 const MAX_CONTACTS_ = 2;
+const FAITHS_ = ['基督徒', '慕道中', '還沒信']; // 空白＝不清楚
 const SIGNUP_DAYS_ = 14; // 超過 14 天沒處理的報名就當作過期
 // 「設定」工作表的預設值（教會可以直接在試算表改 B 欄）
 const CONFIG_DEFAULTS_ = [
@@ -136,14 +137,14 @@ function setText_(rg, v) { rg.setNumberFormat('@').setValue(v); }
 
 /* ---------- 家長聯絡 ---------- */
 // 一個孩子最多兩列：孩子id、孩子名字（方便人看，程式以 id 為準）、稱呼（爸爸／媽媽／其他）、
-// 電話（存成文字，開頭的 0 才不會不見）、更新時間
+// 電話（存成文字，開頭的 0 才不會不見）、信仰（基督徒／慕道中／還沒信，空白＝不清楚）、更新時間
 function contactsSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(SHEET_CONTACTS);
   if (!sh) {
     sh = ss.insertSheet(SHEET_CONTACTS);
-    sh.appendRow(['孩子id', '孩子名字', '稱呼', '電話', '更新時間']);
-    sh.getRange('A:D').setNumberFormat('@');
+    sh.appendRow(['孩子id', '孩子名字', '稱呼', '電話', '信仰', '更新時間']);
+    sh.getRange('A:E').setNumberFormat('@');
     sh.setFrozenRows(1);
   } else if (String(sh.getRange(1, 2).getValue()) !== '孩子名字') {
     // 舊版只有 孩子id、稱呼、電話、更新時間：在第 2 欄插入「孩子名字」並補上名字
@@ -151,6 +152,12 @@ function contactsSheet_() {
     sh.getRange(1, 2).setValue('孩子名字');
     sh.getRange('B:B').setNumberFormat('@');
     fillContactNames_(sh);
+  }
+  if (String(sh.getRange(1, 5).getValue()) !== '信仰') {
+    // 舊版沒有「信仰」：插在電話後面（第 5 欄）
+    sh.insertColumnAfter(4);
+    sh.getRange(1, 5).setValue('信仰');
+    sh.getRange('E:E').setNumberFormat('@');
   }
   return sh;
 }
@@ -174,12 +181,15 @@ function cleanContacts_(list) {
   if (!Array.isArray(list)) return [];
   return list.map(c => ({
     rel: RELS_.indexOf(String(c && c.rel)) >= 0 ? String(c.rel) : '其他',
-    phone: cleanPhone_(c && c.phone)
-  })).filter(c => c.phone.replace(/\D/g, '').length >= 6).slice(0, MAX_CONTACTS_);
+    phone: cleanPhone_(c && c.phone),
+    faith: cleanFaith_(c && c.faith)
+  })).filter(c => c.phone.replace(/\D/g, '').length >= 6 || c.faith).slice(0, MAX_CONTACTS_);
 }
+function cleanFaith_(v) { v = String(v == null ? '' : v).trim(); return FAITHS_.indexOf(v) >= 0 ? v : ''; }
+const hasPhone_ = c => c.phone.replace(/\D/g, '').length >= 6;
 function readContacts_() {
   if (!SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_CONTACTS)) return [];
-  return rows_(contactsSheet_()).filter(r => r[0]).map(r => ({ kidId: String(r[0]), rel: String(r[2]), phone: cleanPhone_(r[3]) }));
+  return rows_(contactsSheet_()).filter(r => r[0]).map(r => ({ kidId: String(r[0]), rel: String(r[2]), phone: cleanPhone_(r[3]), faith: cleanFaith_(r[4]) }));
 }
 function writeContacts_(kidId, list) {
   const sh = contactsSheet_();
@@ -189,7 +199,7 @@ function writeContacts_(kidId, list) {
   }
   if (!list.length) return;
   const name = kidNames_()[kidId] || '';
-  list.forEach(c => appendText_(sh, [kidId, name, c.rel, c.phone, new Date()]));
+  list.forEach(c => appendText_(sh, [kidId, name, c.rel, c.phone, c.faith || '', new Date()]));
 }
 
 function check_(pin) {
@@ -219,7 +229,7 @@ function withLock_(fn) {
 function getData(pin) {
   check_(pin);
   const withPhone = {};
-  readContacts_().forEach(c => { withPhone[c.kidId] = true; });
+  readContacts_().forEach(c => { if (hasPhone_(c)) withPhone[c.kidId] = true; });
   const kids = rows_(sheet_(SHEET_KIDS)).filter(r => r[0]).map(r => ({
     id: String(r[0]), name: String(r[1]), group: group_(r[2]),
     active: String(r[3]).toUpperCase() !== 'FALSE', firstSeen: fs_(r[4]),
@@ -271,7 +281,7 @@ function addKid(pin, name, group, firstSeen, contacts) {
       appendText_(sh, [id, name, group === '3-6' ? '3-6' : '0-3', 'TRUE', firstSeen || '', new Date()]);
     }
     if (list.length) writeContacts_(id, list); // 同名孩子已存在時，只有填了電話才覆蓋
-    const has = list.length > 0 || readContacts_().some(c => c.kidId === id);
+    const has = list.some(hasPhone_) || readContacts_().some(c => c.kidId === id && hasPhone_(c));
     return { id: id, existed: existed, hasContact: has };
   });
 }
@@ -280,9 +290,9 @@ function addKid(pin, name, group, firstSeen, contacts) {
 function getContacts(pin, kidId) {
   check_(pin);
   const all = readContacts_();
-  if (kidId) return all.filter(c => c.kidId === String(kidId)).map(c => ({ rel: c.rel, phone: c.phone }));
+  if (kidId) return all.filter(c => c.kidId === String(kidId)).map(c => ({ rel: c.rel, phone: c.phone, faith: c.faith }));
   const out = {};
-  all.forEach(c => { (out[c.kidId] = out[c.kidId] || []).push({ rel: c.rel, phone: c.phone }); });
+  all.forEach(c => { (out[c.kidId] = out[c.kidId] || []).push({ rel: c.rel, phone: c.phone, faith: c.faith }); });
   return out;
 }
 
@@ -504,13 +514,16 @@ function acceptSignup(pin, id, opts) {
       name = String(kids[ki][1]);
       merged = true;
       // 只補電話：同一支號碼已經有了就不動；兩位都滿了就換掉同稱呼（或第二位）的那支
-      const list = readContacts_().filter(c => c.kidId === kidId).map(c => ({ rel: c.rel, phone: c.phone }));
+      const list = readContacts_().filter(c => c.kidId === kidId).map(c => ({ rel: c.rel, phone: c.phone, faith: c.faith }));
       const d = phone.replace(/\D/g, '');
       if (!list.some(c => c.phone.replace(/\D/g, '') === d)) {
-        if (list.length < MAX_CONTACTS_) list.push({ rel: rel, phone: phone });
+        const blank = list.findIndex(c => c.rel === rel && !hasPhone_(c)); // 同稱呼但還沒電話（例如只填了信仰）：補上電話
+        if (blank >= 0) list[blank].phone = phone;
+        else if (list.length < MAX_CONTACTS_) list.push({ rel: rel, phone: phone, faith: '' });
         else {
           const j = list.findIndex(c => c.rel === rel);
-          list[j >= 0 ? j : list.length - 1] = { rel: rel, phone: phone };
+          const k = j >= 0 ? j : list.length - 1;
+          list[k] = { rel: rel, phone: phone, faith: list[k].rel === rel ? list[k].faith : '' };
         }
         writeContacts_(kidId, list);
       }
@@ -527,7 +540,7 @@ function acceptSignup(pin, id, opts) {
       kidId = Utilities.getUuid().slice(0, 8);
       appendText_(kidsSh, [kidId, name, group_(s.r[3]), 'TRUE', date + '_' + slot, new Date()]);
       // 全新的孩子：沒有舊電話、沒有舊點名，直接加一列就好（不用整張表掃一遍）
-      appendText_(contactsSheet_(), [kidId, name, rel, phone, new Date()]);
+      appendText_(contactsSheet_(), [kidId, name, rel, phone, '', new Date()]);
       appendText_(sheet_(SHEET_REC), [date, slot, kidId, name, new Date()]);
     }
     if (merged) setPresent_(date, slot, kidId, true);
