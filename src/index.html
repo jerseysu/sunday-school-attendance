@@ -664,7 +664,7 @@ td.num{font-family:var(--num);font-weight:700}
         <button type="button" data-schoice="diff" aria-pressed="${c.choice==="diff"}">是不同孩子（另外新增）</button></div></div>`:""}
       <div class="sacts">
         <a class="sbtn scall${c.called?" called":""}" href="tel:${esc(digits(c.phone))}" data-scall>${c.called?"① 再撥一次":"① 撥打確認"}</a>
-        <button class="sbtn sok" type="button" data-sok aria-disabled="${!canAccept}">${busy?"收下中…":"② 有響，收下"}</button>
+        <button class="sbtn sok" type="button" data-sok aria-disabled="${!canAccept}">${busy?"收下中…約 5–10 秒":"② 有響，收下"}</button>
       </div>
       <div class="sfoot"><span class="err" role="status">${esc(c.msg||"")}</span>
         <button class="sno${c.armNo?" armed":""}" type="button" data-sno>${c.armNo?"再按一次確認不收":"不收"}</button></div>
@@ -693,13 +693,25 @@ td.num{font-family:var(--num);font-weight:700}
     if(digits(c.phone)!==digits(s.phone))opts.phone=c.phone.trim();
     c.status="busy";c.msg="";renderSignups();
     try{
-      const r=await api("acceptSignup",s.id,opts);
-      c.status="done";c.result=r;sMark.delete(s.id);renderSignups();
-      await reloadData();
+      // 超過 40 秒還沒回應就先告訴老師，不要一直卡在「收下中」
+      const r=await Promise.race([api("acceptSignup",s.id,opts),
+        new Promise((_,rej)=>setTimeout(()=>rej(new Error("TIMEOUT")),40000))]);
+      c.status="done";c.result=r;sMark.delete(s.id);
+      // 直接在畫面上加進名單並點好名，不用等下一次同步
+      const k=state.kids.get(r.kidId);
+      if(k){k.active=true;k.hasContact=true}
+      else state.kids.set(r.kidId,{id:r.kidId,name:r.name||s.name,group:r.group||s.group,active:true,firstSeen:r.firstSeen||"",hasContact:true});
+      const sk=opts.date+"_"+opts.slot;
+      if(!state.sessions.has(sk))state.sessions.set(sk,{date:opts.date,slot:opts.slot,present:{}});
+      state.sessions.get(sk).present[r.kidId]=true;
+      if(!r.already)state.pendingSignups=Math.max(0,state.pendingSignups-1);
+      if(state.contacts)delete state.contacts[r.kidId];
+      renderSignups();render();
+      setTimeout(reloadData,3000); // 背景再對一次資料
     }catch(e){
       console.error(e);c.status="";
       const m=String(e&&e.message||e);
-      c.msg=/BAD_PIN/.test(m)?"":/同名/.test(m)?"名單裡剛好有同名的孩子，請先選是不是同一個。":"沒有收成功："+m;
+      c.msg=/BAD_PIN/.test(m)?"":/TIMEOUT/.test(m)?"等太久了，可能網路卡住。請關閉後重新打開這個畫面看看是否已經收下。":/同名/.test(m)?"名單裡剛好有同名的孩子，請先選是不是同一個。":"沒有收成功："+m;
       renderSignups();
       if(/同名/.test(m))loadSignups();
     }

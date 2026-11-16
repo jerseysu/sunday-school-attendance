@@ -497,14 +497,15 @@ function acceptSignup(pin, id, opts) {
       }
       kidId = Utilities.getUuid().slice(0, 8);
       appendText_(kidsSh, [kidId, name, group_(s.r[3]), 'TRUE', date + '_' + slot, new Date()]);
-      writeContacts_(kidId, [{ rel: rel, phone: phone }]);
+      // 全新的孩子：沒有舊電話、沒有舊點名，直接加一列就好（不用整張表掃一遍）
+      appendText_(contactsSheet_(), [kidId, rel, phone, new Date()]);
+      appendText_(sheet_(SHEET_REC), [date, slot, kidId, name, new Date()]);
     }
-    setPresent_(date, slot, kidId, true);
-    if (phone !== cleanPhone_(s.r[5])) setCell_(sh, s.row, 6, phone);
-    setCell_(sh, s.row, 9, ST_OK_);
-    setCell_(sh, s.row, 10, now_());
-    setCell_(sh, s.row, 11, kidId);
-    return { kidId: kidId, name: name, merged: merged };
+    if (merged) setPresent_(date, slot, kidId, true);
+    // 報名那一列：電話、狀態、處理時間、孩子id 一次寫完（第 6～11 欄）
+    sh.getRange(s.row, 6, 1, 6).setNumberFormat('@')
+      .setValues([[phone, String(s.r[6]), String(s.r[7]), ST_OK_, now_(), kidId]]);
+    return { kidId: kidId, name: name, merged: merged, group: group_(s.r[3]), firstSeen: merged ? '' : date + '_' + slot };
   });
 }
 
