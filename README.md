@@ -1,6 +1,12 @@
 # 主日學點名
 
-內湖蒙式角落主日學的點名小工具。老師打開網址就能點名，不用登入。點名紀錄存在 Google 試算表，負責人直接打開試算表就能看。
+內湖蒙式角落主日學的點名小工具。老師打開網址、輸入教室密碼就能點名，不用登入帳號。點名紀錄存在 Google 試算表，負責人直接打開試算表就能看。
+
+```
+GitHub Pages（畫面）──fetch──▶ Apps Script（API，檢查教室密碼）──▶ Google 試算表（資料）
+```
+
+同一份 `src/index.html` 也能直接由 Apps Script 提供（備用入口），兩邊用同一份資料。
 
 - 前端：`src/index.html`，大按鈕、圓體字、手機優先的版面
 - 後端：`src/Code.gs`，Google Apps Script，讀寫試算表
@@ -12,7 +18,7 @@
 - **新朋友**：右下角「＋」輸入名字，會標記成當次的新朋友
 - **統計**：本月點名次數、平均人數、來過的孩子、新朋友、最近 12 次長條圖，以及超過 3 週沒來的孩子
 - **名單**：改名字、改年齡層，不再來的孩子可以「收起來」，紀錄保留
-- **教室密碼**：第一次打開輸入 4 位數，裝置會記住；擋掉拿到網址的陌生人
+- **教室密碼**：第一次打開輸入 4 位數，裝置會記住。所有讀寫都要在 Apps Script 端比對密碼，拿到網址的陌生人看不到任何資料
 - 多台裝置同時點名：每 20 秒自動同步一次
 
 ## 部署（第一次，約 10 分鐘）
@@ -39,15 +45,24 @@
 feature 分支 ──PR──▶ CI：語法檢查
                      │ 合併
                      ▼
-                   main ──▶ GitHub Actions：語法檢查 → clasp push → clasp deploy
-                                                         （更新同一個部署，網址不變）
+                   main ─┬─▶ pages.yml：語法檢查 → 注入 API 網址 → GitHub Pages（前端）
+                         └─▶ deploy.yml：語法檢查 → clasp push → 更新 Apps Script 部署（後端，網址不變）
 ```
 
 - `ci.yml`：PR 和非 main 分支，只跑 `node scripts/check.mjs`
-- `deploy.yml`：推到 main（或在 Actions 手動按 Run）就部署到正式網址
+- `pages.yml`：`src/index.html` 有改動才重新發佈前端
+- `deploy.yml`：推到 main 就更新 Apps Script 後端
 - 出問題要退版：`git revert` 後推上 main，或在 Apps Script「管理部署作業」把版本切回上一版
 
-### 一次性設定
+### 一次性設定：GitHub Pages
+
+1. 先照上面「部署」手動部署 Apps Script，複製網頁應用程式網址（`https://script.google.com/macros/s/…/exec`）
+2. repo › Settings › Secrets and variables › Actions › **Variables** 分頁，新增 `APPS_SCRIPT_URL` = 上面的網址
+3. repo › Settings › Pages › Source 選 **GitHub Actions**
+4. 免費帳號的 GitHub Pages 只能用在 **public repo**：程式碼會公開，但裡面沒有孩子資料，密碼也只在 Apps Script 的指令碼屬性裡
+5. 推到 main，或在 Actions 手動跑「Deploy to GitHub Pages」，網址是 `https://jerseysu.github.io/sunday-school-attendance/`
+
+### 一次性設定：Apps Script 自動部署
 
 1. 先照上面「部署」手動部署一次，記下兩個 ID：
    - **Script ID**：Apps Script › 專案設定 › 指令碼 ID

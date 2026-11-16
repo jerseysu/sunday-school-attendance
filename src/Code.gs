@@ -18,6 +18,28 @@ function doGet() {
     .addMetaTag('viewport', 'width=device-width, initial-scale=1');
 }
 
+/**
+ * JSON API，給 GitHub Pages 上的前端用。
+ * 前端用 Content-Type: text/plain 送 POST，避開 Apps Script 不支援的 CORS 預檢。
+ * body: {"fn":"getData","pin":"1234","args":[...]}
+ */
+const API_ = { getData: getData, setPresent: setPresent, addKid: addKid, updateKid: updateKid };
+
+function doPost(e) {
+  let out;
+  try {
+    const req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
+    const fn = API_[req.fn];
+    if (!fn) throw new Error('UNKNOWN_FN');
+    const args = Array.isArray(req.args) ? req.args : [];
+    out = { ok: true, data: fn.apply(null, [req.pin].concat(args)) };
+  } catch (err) {
+    out = { ok: false, error: String(err && err.message || err) };
+  }
+  return ContentService.createTextOutput(JSON.stringify(out))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
 /** 第一次執行：建立工作表與欄位 */
 function setup() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
