@@ -33,17 +33,49 @@
 
 之後改程式：**部署 › 管理部署作業 › 編輯 › 版本：新版本**，網址不變。
 
-## 用 clasp 從 GitHub 部署（工程師用）
+## 部署流程
 
-```bash
-npm install -g @google/clasp
-clasp login
-cp .clasp.json.example .clasp.json   # 填入 Apps Script 的 scriptId（專案設定裡可以找到）
-clasp push                           # 把 src/ 推上 Apps Script
-clasp deploy -d "說明"               # 建立新版本；更新既有部署用 clasp deploy -i <deploymentId>
+```
+feature 分支 ──PR──▶ CI：語法檢查
+                     │ 合併
+                     ▼
+                   main ──▶ GitHub Actions：語法檢查 → clasp push → clasp deploy
+                                                         （更新同一個部署，網址不變）
 ```
 
-`.clasp.json` 和密碼都不進 git。密碼只存在 Apps Script 的指令碼屬性。
+- `ci.yml`：PR 和非 main 分支，只跑 `node scripts/check.mjs`
+- `deploy.yml`：推到 main（或在 Actions 手動按 Run）就部署到正式網址
+- 出問題要退版：`git revert` 後推上 main，或在 Apps Script「管理部署作業」把版本切回上一版
+
+### 一次性設定
+
+1. 先照上面「部署」手動部署一次，記下兩個 ID：
+   - **Script ID**：Apps Script › 專案設定 › 指令碼 ID
+   - **Deployment ID**：部署 › 管理部署作業 › 網頁應用程式那一筆的「部署作業 ID」
+2. 開啟 Apps Script API：https://script.google.com/home/usersettings
+3. 在自己電腦登入 clasp，產生憑證：
+   ```bash
+   npm install -g @google/clasp@2.4.2
+   clasp login            # 會產生 ~/.clasprc.json
+   cat ~/.clasprc.json    # 整段複製
+   ```
+4. GitHub repo › Settings › Secrets and variables › Actions，新增三個 secret：
+   | 名稱 | 內容 |
+   |---|---|
+   | `CLASPRC_JSON` | `~/.clasprc.json` 的完整內容 |
+   | `SCRIPT_ID` | Script ID |
+   | `DEPLOYMENT_ID` | Deployment ID |
+5. （建議）Settings › Environments 建 `production`，可以加「需要核准」，避免誤推就上線
+
+### 本機開發
+
+```bash
+cp .clasp.json.example .clasp.json   # 填入 Script ID
+node scripts/check.mjs               # 語法檢查
+clasp push                           # 推到 Apps Script 的「測試部署」（/dev 網址）先試
+```
+
+`.clasp.json`、`.clasprc.json` 和密碼都不進 git。密碼只存在 Apps Script 的指令碼屬性。
 
 ## 注意
 
