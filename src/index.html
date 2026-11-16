@@ -115,6 +115,26 @@ td.num{font-family:var(--num);font-weight:700}
 .actions{display:flex;gap:10px;justify-content:flex-end}
 .actions .btn{font-size:21px;padding:10px 22px}
 .err{color:var(--warn);font-size:17px;min-height:1em}
+.dialog{max-height:calc(100vh - 32px);overflow-y:auto}
+/* 家長聯絡 */
+.contacts{border-top:2px dashed var(--line);padding-top:12px;display:flex;flex-direction:column;gap:10px}
+.chead{display:flex;align-items:center;gap:8px}
+.ctitle{font-size:21px}
+.opt{font-size:14px;color:var(--muted);background:var(--bg);border-radius:10px;padding:2px 8px}
+.centry{border:2px dashed var(--line);border-radius:18px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.centry .choice button{font-size:18px;padding:6px}
+.cprow{display:flex;gap:8px}
+.cprow input{flex:1;min-width:0;font-family:var(--num);font-size:22px;letter-spacing:1px;padding:8px 12px;border:3px solid var(--line);border-radius:14px;background:var(--bg)}
+.addparent{border:2px dashed var(--sky);background:#fff;color:var(--sky);border-radius:14px;padding:8px;font-size:18px}
+.lfilter{margin-bottom:6px}
+.lfilter button{font-size:18px;padding:6px}
+.phones{flex-basis:100%;display:flex;flex-direction:column;gap:6px}
+.phone{display:flex;align-items:center;gap:8px;background:#F4F9FD;border-radius:14px;padding:4px 4px 4px 12px}
+.phone .rel{font-size:16px;color:var(--muted);min-width:34px}
+.phone .pnum{flex:1;min-width:0;font-family:var(--num);font-size:18px;letter-spacing:.5px;white-space:nowrap}
+.phone .btn{min-height:44px}
+.call{display:inline-flex;align-items:center;min-height:44px;padding:0 14px;border-radius:12px;background:var(--mint);color:#fff;text-decoration:none;font-size:17px;box-shadow:0 3px 0 var(--mint-d)}
+.nophone{display:flex;justify-content:space-between;align-items:center;min-height:44px;border:2px dashed #E59A4E;background:#fff;color:#9A4B12;border-radius:14px;padding:6px 12px;font-size:16px;text-align:left}
 
 .pin{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:16px;z-index:20}
 .pin.show{display:flex}
@@ -205,7 +225,8 @@ td.num{font-family:var(--num);font-weight:700}
   <section id="view-list" hidden>
     <div class="panel">
       <h2>孩子名單</h2>
-      <p class="hint">改名字、改年齡層，或把不再來的孩子先「收起來」，點名畫面就不會顯示。紀錄都會保留。</p>
+      <p class="hint">改名字、改年齡層、補家長電話，或把不再來的孩子先「收起來」，點名畫面就不會顯示。紀錄都會保留。</p>
+      <div class="choice lfilter" id="listFilter"></div>
       <div id="kidList"></div>
     </div>
   </section>
@@ -239,6 +260,12 @@ td.num{font-family:var(--num);font-weight:700}
     <div class="choice" id="mNewWrap">
       <button type="button" id="mNew" aria-pressed="true">今天第一次來（新朋友）</button>
     </div>
+    <div class="contacts">
+      <div class="chead"><span class="ctitle">家長聯絡方式</span><span class="opt">可以不填</span></div>
+      <p class="hint" style="margin:0;font-size:16px">孩子找不到爸媽時，老師可以馬上打電話。</p>
+      <div id="mContacts"></div>
+      <button type="button" class="addparent" id="mAddParent">＋ 再加一位家長</button>
+    </div>
     <div class="err" id="mErr"></div>
     <div class="actions">
       <button class="btn" type="button" id="mCancel">取消</button>
@@ -262,7 +289,7 @@ td.num{font-family:var(--num);font-weight:700}
   const pretty=s=>{const d=parse(s);return (d.getMonth()+1)+" 月 "+d.getDate()+" 日（"+WK[d.getDay()]+"）"};
   const short=s=>{const d=parse(s);return (d.getMonth()+1)+"/"+d.getDate()};
 
-  const state={date:iso(new Date()),slot:null,kids:new Map(),sessions:new Map(),pin:null,view:"roll",editId:null,pending:0,loaded:false};
+  const state={date:iso(new Date()),slot:null,kids:new Map(),sessions:new Map(),pin:null,view:"roll",editId:null,pending:0,loaded:false,contacts:null,listFilter:"all",shown:new Set()};
   const dow=new Date().getDay();
   state.slot=(SLOTS.find(s=>s.dow===dow)||SLOTS[0]).id;
 
@@ -373,7 +400,22 @@ td.num{font-family:var(--num);font-weight:700}
 
   // ---------- 新增 / 修改孩子 ----------
   let mGroup="0-3",mNew=true;
-  function openModal(editId){
+  // 家長電話：mContacts 是表單裡的資料；mLoaded=false 時（修改模式還沒讀到）不會送出，避免把舊電話洗掉
+  const RELS=["爸爸","媽媽","其他"],MAXC=2;
+  let mContacts=[],mOrig="[]",mLoaded=true;
+  const digits=p=>String(p||"").replace(/\D/g,"");
+  const validContacts=()=>mContacts.map(c=>({rel:c.rel,phone:c.phone.trim()})).filter(c=>digits(c.phone).length>=6);
+  function drawContacts(msg){
+    const box=$("mContacts");
+    if(msg){box.innerHTML=`<p class="hint" style="margin:0">${esc(msg)}</p>`;$("mAddParent").hidden=true;return}
+    box.innerHTML=mContacts.map((c,i)=>`<div class="centry">
+      <div class="choice" role="group" aria-label="第 ${i+1} 位家長的稱呼">${RELS.map(r=>`<button type="button" data-ci="${i}" data-rel="${r}" aria-pressed="${c.rel===r}">${r}</button>`).join("")}</div>
+      <label for="mPhone${i}">手機號碼</label>
+      <div class="cprow"><input type="tel" inputmode="tel" id="mPhone${i}" data-ci="${i}" maxlength="20" autocomplete="off" placeholder="0912-345-678" value="${esc(c.phone)}">
+      <button class="btn danger" type="button" data-cdel="${i}" aria-label="刪除第 ${i+1} 位家長">刪除</button></div></div>`).join("");
+    $("mAddParent").hidden=mContacts.length>=MAXC;
+  }
+  async function openModal(editId){
     state.editId=editId||null;
     const k=editId?state.kids.get(editId):null;
     $("mTitle").textContent=k?"修改孩子資料":"新增孩子";
@@ -383,6 +425,18 @@ td.num{font-family:var(--num);font-weight:700}
     $("mSave").textContent=k?"儲存":"加入並點名";
     syncChoice();$("mErr").textContent="";
     $("modal").classList.add("show");setTimeout(()=>$("mName").focus(),50);
+    if(!k){mContacts=[{rel:"媽媽",phone:""}];mOrig="[]";mLoaded=true;drawContacts();return}
+    const cached=state.contacts&&state.contacts[editId];
+    if(cached||(state.contacts&&!k.hasContact)){mContacts=(cached||[]).map(c=>({...c}));mLoaded=true}
+    else{
+      mLoaded=false;drawContacts("讀取家長電話中…");
+      try{mContacts=(await api("getContacts",editId)).map(c=>({...c}));mLoaded=true}
+      catch(e){console.error(e);if(state.editId===editId)drawContacts("家長電話讀不到，這次先不改電話。");return}
+      if(state.editId!==editId||!$("modal").classList.contains("show"))return;
+    }
+    mOrig=JSON.stringify(validContacts());
+    if(!mContacts.length)mContacts=[{rel:"媽媽",phone:""}];
+    drawContacts();
   }
   function closeModal(){$("modal").classList.remove("show")}
   function syncChoice(){
@@ -396,17 +450,22 @@ td.num{font-family:var(--num);font-weight:700}
     if(!name){$("mErr").textContent="請輸入名字。";return}
     saving=true;$("mErr").textContent="儲存中…";
     try{
+      const list=validContacts();
       if(state.editId){
         const id=state.editId;
         const k=state.kids.get(id);if(k){k.name=name;k.group=mGroup}
+        const phonesChanged=mLoaded&&JSON.stringify(list)!==mOrig;
+        if(phonesChanged){if(k)k.hasContact=list.length>0;if(state.contacts)state.contacts[id]=list}
         closeModal();render();
         queue(()=>api("updateKid",id,{name,group:mGroup}));
+        if(phonesChanged)queue(()=>api("setContacts",id,list));
       }else{
         const date=state.date,slot=state.slot,fs=mNew?key():"";
         state.pending++;
-        const r=await api("addKid",name,mGroup,fs).finally(()=>{state.pending--});
-        if(!state.kids.has(r.id))state.kids.set(r.id,{id:r.id,name,group:mGroup,active:true,firstSeen:fs});
-        else state.kids.get(r.id).active=true;
+        const r=await api("addKid",name,mGroup,fs,list).finally(()=>{state.pending--});
+        if(!state.kids.has(r.id))state.kids.set(r.id,{id:r.id,name,group:mGroup,active:true,firstSeen:fs,hasContact:!!r.hasContact});
+        else{const kk=state.kids.get(r.id);kk.active=true;kk.hasContact=!!r.hasContact}
+        if(state.contacts&&list.length)state.contacts[r.id]=list;
         closeModal();
         if(!presentIds(state.sessions.get(date+"_"+slot)).includes(r.id)){setLocal(r.id,true);renderRoll();queue(()=>api("setPresent",date,slot,r.id,true))}
         else render();
@@ -449,13 +508,38 @@ td.num{font-family:var(--num);font-weight:700}
   }
 
   // ---------- 名單 ----------
+  // 電話中間遮起來，按「顯示」才看得到完整號碼
+  const maskPhone=p=>{const d=digits(p);return d.length>=7?d.slice(0,4)+"-•••-"+d.slice(-3):"•••"};
+  let contactsLoading=false;
+  async function loadContacts(){
+    if(contactsLoading||state.contacts)return;
+    contactsLoading=true;
+    try{state.contacts=await api("getContacts")}catch(e){console.error(e)}
+    finally{contactsLoading=false;if(state.view==="list")renderList()}
+  }
+  function phonesHtml(id,k){
+    const list=state.contacts?state.contacts[id]||[]:null;
+    if(list&&list.length)return list.map((c,i)=>{const key=id+"_"+i,open=state.shown.has(key);
+      return `<div class="phone"><span class="rel">${esc(c.rel)}</span><span class="pnum">${esc(open?c.phone:maskPhone(c.phone))}</span>
+      <button class="btn" type="button" data-show="${esc(key)}" aria-label="${open?"隱藏":"顯示"}${esc(k.name)}${esc(c.rel)}的電話">${open?"隱藏":"顯示"}</button>
+      <a class="call" href="tel:${esc(digits(c.phone))}" aria-label="打給${esc(k.name)}的${esc(c.rel)}">撥打</a></div>`}).join("");
+    if(!list&&k.hasContact)return `<span class="hint" style="margin:0;font-size:16px">電話讀取中…</span>`;
+    return `<button class="nophone" type="button" data-edit="${esc(id)}"><span>還沒有家長電話</span><b>＋ 補上</b></button>`;
+  }
   function renderList(){
+    loadContacts();
     const seen=lastSeenMap();
-    const kids=[...state.kids.entries()].sort((a,b)=>((a[1].active===false)-(b[1].active===false))||byName(a,b));
+    const all=[...state.kids.entries()].sort((a,b)=>((a[1].active===false)-(b[1].active===false))||byName(a,b));
+    const missing=all.filter(([,k])=>k.active!==false&&!k.hasContact).length;
+    if(state.listFilter==="missing"&&!missing)state.listFilter="all";
+    $("listFilter").innerHTML=[["all","全部 "+all.length],["missing","缺電話 "+missing]]
+      .map(([f,t])=>`<button type="button" data-filter="${f}" aria-pressed="${state.listFilter===f}">${t}</button>`).join("");
+    const kids=state.listFilter==="missing"?all.filter(([,k])=>k.active!==false&&!k.hasContact):all;
     $("kidList").innerHTML=kids.length?kids.map(([id,k])=>{const off=k.active===false;
       return `<div class="row${off?" off":""}"><span class="nm">${esc(k.name)}</span><span class="pill new">${k.group==="3-6"?"3–6 歲":"0–3 歲"}</span><span class="hint" style="margin:0;font-size:16px">${seen.get(id)?"最後一次："+short(seen.get(id)):"還沒點過名"}</span>
       <button class="btn" type="button" data-edit="${esc(id)}">修改</button>
-      <button class="btn ${off?"primary":"danger"}" type="button" data-hide="${esc(id)}">${off?"放回點名":"收起來"}</button></div>`}).join("")
+      <button class="btn ${off?"primary":"danger"}" type="button" data-hide="${esc(id)}">${off?"放回點名":"收起來"}</button>
+      ${off?"":`<div class="phones">${phonesHtml(id,k)}</div>`}</div>`}).join("")
       :`<p class="hint">名單還是空的。</p>`;
   }
   function toggleHide(id){
@@ -471,6 +555,7 @@ td.num{font-family:var(--num);font-weight:700}
     const b=e.target.closest("button[data-view]");if(!b)return;state.view=b.dataset.view;
     document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",String(x===b)));
     ["roll","stats","list"].forEach(v=>$("view-"+v).hidden=v!==state.view);
+    if(state.view!=="list"){state.contacts=null;state.shown.clear()} // 離開名單頁就把電話從記憶體清掉
     $("newBtn").hidden=state.view==="stats";render();
   });
   $("slots").addEventListener("click",e=>{const b=e.target.closest("button[data-slot]");if(!b)return;state.slot=b.dataset.slot;render()});
@@ -484,7 +569,18 @@ td.num{font-family:var(--num);font-weight:700}
   $("mGroup").addEventListener("click",e=>{const b=e.target.closest("button[data-g]");if(b){mGroup=b.dataset.g;syncChoice()}});
   $("mNew").addEventListener("click",()=>{mNew=!mNew;syncChoice()});
   $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
-  $("kidList").addEventListener("click",e=>{const ed=e.target.closest("[data-edit]");if(ed)openModal(ed.dataset.edit);const h=e.target.closest("[data-hide]");if(h)toggleHide(h.dataset.hide)});
+  $("kidList").addEventListener("click",e=>{
+    const ed=e.target.closest("[data-edit]");if(ed)openModal(ed.dataset.edit);
+    const h=e.target.closest("[data-hide]");if(h)toggleHide(h.dataset.hide);
+    const sh=e.target.closest("[data-show]");if(sh){const k=sh.dataset.show;state.shown.has(k)?state.shown.delete(k):state.shown.add(k);renderList()}
+  });
+  $("listFilter").addEventListener("click",e=>{const b=e.target.closest("[data-filter]");if(b){state.listFilter=b.dataset.filter;renderList()}});
+  $("mContacts").addEventListener("click",e=>{
+    const r=e.target.closest("[data-rel]");if(r){mContacts[+r.dataset.ci].rel=r.dataset.rel;drawContacts();return}
+    const d=e.target.closest("[data-cdel]");if(d){mContacts.splice(+d.dataset.cdel,1);if(!mContacts.length)mContacts=[{rel:"媽媽",phone:""}];drawContacts()}
+  });
+  $("mContacts").addEventListener("input",e=>{const i=e.target.dataset.ci;if(i!=null&&e.target.tagName==="INPUT")mContacts[+i].phone=e.target.value});
+  $("mAddParent").addEventListener("click",()=>{if(mContacts.length<MAXC){mContacts.push({rel:mContacts.some(c=>c.rel==="媽媽")?"爸爸":"媽媽",phone:""});drawContacts();$("mPhone"+(mContacts.length-1)).focus()}});
 
   // 多台裝置同時點名：每 20 秒、或切回這個畫面時更新一次
   setInterval(()=>{if(!document.hidden)refresh(true)},20000);

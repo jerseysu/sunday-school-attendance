@@ -10,7 +10,7 @@ The same `src/index.html` can also be served by Apps Script itself as a backup e
 
 - Frontend: `src/index.html`. Big buttons, rounded fonts, mobile-first layout
 - Backend: `src/Code.gs`. Google Apps Script that reads and writes the sheet
-- Data: three tabs in the spreadsheet: 孩子名單 (roster), 點名紀錄 (attendance records), 統計 (stats)
+- Data: tabs in the spreadsheet: 孩子名單 (roster), 點名紀錄 (attendance records), 統計 (stats), and 家長聯絡 (parent contacts, created automatically the first time it is used)
 
 ## Features
 
@@ -18,6 +18,7 @@ The same `src/index.html` can also be served by Apps Script itself as a backup e
 - **Newcomers**: tap "+" in the bottom-right corner to add a name. The child is tagged as a newcomer for that session
 - **Stats**: sessions this month, average attendance, children who came, newcomers, a bar chart of the last 12 sessions, and children who haven't come for more than 3 weeks
 - **Roster**: rename a child, change the age group, or hide children who no longer come (their records are kept)
+- **Parent contacts** (optional): up to two phone numbers per child (爸爸 / 媽媽 / 其他), added when a child is created or later from the roster. The roster masks the middle digits (`0912-•••-678`); tap 顯示 to reveal, 撥打 to call. A 缺電話 filter lists children with no number yet. Phone numbers are only fetched on the roster page and cleared from memory when you leave it
 - **Classroom PIN**: enter the 5-digit PIN once and the device remembers it. Every read and write is checked against the PIN on the Apps Script side, so someone who only has the link sees no data
 - Several devices can take attendance at once; the page syncs every 20 seconds
 
@@ -103,7 +104,7 @@ npx @google/clasp@2.4.2 push         # push to the Apps Script test deployment (
 
 ## Notes
 
-- Children's names are personal data. Share the link only with co-workers, never in public groups
+- Children's names and parents' phone numbers are personal data. Share the link only with co-workers, never in public groups, and share the spreadsheet only with the people in charge
 - Web apps deployed from a personal Google account show a banner "This application was created by a Google Apps Script user". This is a fixed Google notice
 - The header logo changes with the session: Sunday 蒙式主日學, Saturday 有一村, Wednesday/Thursday 蒙式角落. The original files are in `assets/` and are embedded in `src/index.html`
 - Design (Claude Design): https://claude.ai/artifact/KQqfXTZoF9ciRMTRyUYqvc
