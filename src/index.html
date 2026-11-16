@@ -146,6 +146,47 @@ td.num{font-family:var(--num);font-weight:700}
 .keys button{height:78px;border-radius:24px;border:3px solid var(--line);background:#fff;font-family:var(--num);font-size:34px;font-weight:700;box-shadow:0 5px 0 var(--line)}
 .keys button[data-k]{font-family:var(--cute);font-size:20px;font-weight:400}
 .keys button:active{transform:translateY(3px);box-shadow:0 2px 0 var(--line)}
+/* 家長報名：待確認 */
+.sbanner{display:flex;width:100%;align-items:center;justify-content:space-between;gap:10px;min-height:58px;border:0;border-radius:22px;background:var(--orange);color:var(--ink);font-size:21px;padding:10px 18px;margin:0 0 14px;box-shadow:0 5px 0 #D9853A;text-align:left}
+.sbanner b{font-family:var(--num);font-size:26px;font-weight:700}
+.sbanner .go{white-space:nowrap}
+.sbanner:active{transform:translateY(3px);box-shadow:0 2px 0 #D9853A}
+.sbanner[hidden]{display:none}
+.sdialog{width:min(620px,100%)}
+.shtop{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.shtop .btn{min-height:44px}
+.slist{display:flex;flex-direction:column;gap:16px}
+.scard{border:3px solid var(--line);border-radius:24px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 5px 0 var(--line);background:#fff}
+.scard.ok{border-color:var(--mint);background:var(--mint-soft);box-shadow:0 5px 0 var(--mint)}
+.scard.off{opacity:.7}
+.shead{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+.swho{display:flex;flex-direction:column;align-items:flex-start;gap:4px;min-width:0}
+.sname{font-size:28px;margin:0;font-weight:400;line-height:1.2;word-break:break-all}
+.scode{text-align:right;line-height:1;flex:none}
+.scode span{display:block;font-size:14px;color:var(--muted);margin-bottom:2px}
+.scode b{font-family:var(--num);font-size:40px;font-weight:700;letter-spacing:3px;font-variant-numeric:tabular-nums}
+.sphone{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#F4F9FD;border-radius:14px;padding:4px 8px 4px 12px}
+.sphone .rel{font-size:17px;color:var(--muted)}
+.sphone .pnum{font-family:var(--num);font-size:24px;letter-spacing:1px;word-break:break-all}
+.slink{border:0;background:none;color:var(--sky);text-decoration:underline;font-size:16px;min-height:44px;padding:0 6px;margin-left:auto}
+.sagree{margin:0;color:#1E7A57;font-size:16px}
+.ssame{background:var(--warn-soft);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.ssame p{margin:0;color:var(--warn);font-size:17px}
+.ssame .choice button{font-size:17px;padding:6px;min-height:52px}
+.sacts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.sbtn{display:flex;align-items:center;justify-content:center;min-height:60px;border-radius:18px;font-size:20px;text-decoration:none;border:0;text-align:center;padding:6px 8px;line-height:1.25}
+.scall{background:var(--sky);color:#fff;box-shadow:0 5px 0 var(--sky-d)}
+.scall.called{background:var(--sky-soft);color:var(--sky-d);box-shadow:0 5px 0 var(--line)}
+.sok{background:var(--mint);color:#fff;box-shadow:0 5px 0 var(--mint-d)}
+.sok[aria-disabled="true"]{background:#E3ECF2;color:#5F7890;box-shadow:0 5px 0 var(--line);cursor:not-allowed}
+.sbtn:active{transform:translateY(3px)}
+.sok[aria-disabled="true"]:active{transform:none}
+.sfoot{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.sfoot .err{flex:1}
+.sno{min-height:44px;border:2px solid var(--warn-soft);background:#fff;color:var(--warn);border-radius:14px;padding:4px 14px;font-size:16px;flex:none}
+.sno.armed{background:var(--warn);color:#fff;border-color:var(--warn)}
+.sdone{margin:0;font-size:20px;color:#1E7A57}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 
 /* 手機：分頁移到底部、名字兩欄、新增鈕改成右下圓鈕 */
 @media (max-width:640px){
@@ -166,6 +207,9 @@ td.num{font-family:var(--num);font-weight:700}
   .kid{font-size:28px;min-height:80px;border-radius:22px}
   .newfab{left:auto;right:16px;transform:none;bottom:96px;width:66px;height:66px;padding:0;font-size:0;border-radius:50%}
   .newfab::before{content:"";display:block;width:30px;height:30px;margin:auto;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E") center/contain no-repeat}
+  .scode b{font-size:34px}
+  .sbtn{font-size:18px}
+  .sbanner{font-size:19px}
   .keys{grid-template-columns:repeat(3,78px)}
   .keys button{height:70px}
 }
@@ -186,6 +230,7 @@ td.num{font-family:var(--num);font-weight:700}
 
   <!-- 點名 -->
   <section id="view-roll">
+    <button type="button" class="sbanner" id="signupBanner" hidden></button>
     <div class="bar">
       <div class="when">
         <div class="dateline">
@@ -274,6 +319,14 @@ td.num{font-family:var(--num);font-weight:700}
   </div>
 </div>
 
+<div class="modal" id="sModal" role="dialog" aria-modal="true" aria-labelledby="sTitle">
+  <div class="dialog sdialog">
+    <div class="shtop"><h2 id="sTitle">新朋友確認</h2><button class="btn" type="button" id="sClose">關閉</button></div>
+    <p class="hint" id="sWhen" style="margin:0"></p>
+    <div id="sList" class="slist" aria-live="polite"></div>
+  </div>
+</div>
+
 <script>
 (function(){
   const SLOTS=[{id:"sun",name:"主日",dow:0},{id:"wed",name:"週三",dow:3},{id:"thu",name:"週四",dow:4},{id:"sat",name:"週六",dow:6}];
@@ -289,7 +342,7 @@ td.num{font-family:var(--num);font-weight:700}
   const pretty=s=>{const d=parse(s);return (d.getMonth()+1)+" 月 "+d.getDate()+" 日（"+WK[d.getDay()]+"）"};
   const short=s=>{const d=parse(s);return (d.getMonth()+1)+"/"+d.getDate()};
 
-  const state={date:iso(new Date()),slot:null,kids:new Map(),sessions:new Map(),pin:null,view:"roll",editId:null,pending:0,loaded:false,contacts:null,listFilter:"all",shown:new Set()};
+  const state={date:iso(new Date()),slot:null,kids:new Map(),sessions:new Map(),pin:null,view:"roll",editId:null,pending:0,loaded:false,contacts:null,listFilter:"all",shown:new Set(),pendingSignups:0};
   const dow=new Date().getDay();
   state.slot=(SLOTS.find(s=>s.dow===dow)||SLOTS[0]).id;
 
@@ -323,6 +376,7 @@ td.num{font-family:var(--num);font-weight:700}
     const m=new Map();
     data.records.forEach(r=>{const k=r.date+"_"+r.slot;if(!m.has(k))m.set(k,{date:r.date,slot:r.slot,present:{}});m.get(k).present[r.kidId]=true});
     state.sessions=m;state.loaded=true;
+    state.pendingSignups=Number(data.pendingSignups)||0;
   }
   let loading=false;
   async function refresh(quiet){
@@ -548,7 +602,116 @@ td.num{font-family:var(--num);font-weight:700}
     queue(()=>api("updateKid",id,{active:val}));
   }
 
-  function render(){renderSlots();renderRoll();if(state.view==="stats")renderStats();if(state.view==="list")renderList()}
+  function renderBanner(){
+    const n=state.pendingSignups,b=$("signupBanner");
+    b.hidden=!(n>0);
+    if(n>0)b.innerHTML=`<span><b>${n}</b> 位新朋友等你確認</span><span class="go">去確認 ›</span>`;
+  }
+
+  // ---------- 家長報名：打電話確認後收下 ----------
+  // sItems 只在確認視窗開著時留在記憶體；關掉就清掉（裡面有電話）
+  let sItems=[],sLoading=false,sOpen=false;
+  const sMark=new Map(); // 報名id → {called, choice}：關掉再打開時不用重撥
+  const relTime=t=>{const d=String(t||"");if(d.length<16)return "";return (d.slice(0,10)===iso(new Date())?"":short(d.slice(0,10))+" ")+d.slice(11,16)};
+  const findS=id=>sItems.find(c=>c.s.id===id);
+  async function openSignups(){
+    sOpen=true;sItems=[];sLoading=true;
+    $("sWhen").textContent="先打電話確認是家長本人，電話有響再收下。收下後會點名在："+pretty(state.date)+" "+slotName(state.slot)+"。";
+    $("sModal").classList.add("show");renderSignups();setTimeout(()=>$("sClose").focus(),50);
+    await loadSignups();
+  }
+  async function loadSignups(){
+    sLoading=true;
+    try{
+      const list=await api("getSignups");
+      if(!sOpen)return;
+      const old=new Map(sItems.map(c=>[c.s.id,c]));
+      sItems=list.map(s=>{const o=old.get(s.id);const m=sMark.get(s.id)||{};
+        return o&&o.status!=="done"&&o.status!=="rejected"?Object.assign(o,{s}):{s,phone:s.phone,editing:false,called:!!m.called,choice:m.choice||null,armNo:false,status:"",msg:"",result:null}});
+      // 剛處理好的卡片留在畫面上，讓老師看到結果
+      old.forEach(c=>{if((c.status==="done"||c.status==="rejected")&&!list.some(s=>s.id===c.s.id))sItems.push(c)});
+    }catch(e){console.error(e);if(sOpen&&!sItems.length)$("sList").innerHTML=`<div class="empty">讀不到報名資料，請確認網路後再打開一次。</div>`;sLoading=false;return}
+    sLoading=false;renderSignups();
+  }
+  function closeSignups(){sOpen=false;sItems=[];$("sList").innerHTML="";$("sModal").classList.remove("show");renderBanner()}
+  function cardHtml(c){
+    const s=c.s,group=s.group==="3-6"?"3–6 歲":"0–3 歲";
+    const head=`<div class="shead"><div class="swho"><h3 class="sname">${esc(s.name)}</h3><span class="pill new">${group}</span></div>
+      <div class="scode" aria-label="報到碼 ${esc(s.code)}"><span>報到碼</span><b>${esc(s.code)}</b></div></div>`;
+    if(c.status==="done"){
+      const r=c.result||{};
+      return `<article class="scard ok">${head}<p class="sdone">✓ 已加入名單，今天也點好名了</p>`+
+        (r.merged?`<p class="hint" style="margin:0">電話已經補到原本的「${esc(r.name||s.name)}」。</p>`:"")+
+        (!r.merged&&r.name&&r.name!==s.name?`<p class="hint" style="margin:0">名單上的名字是「${esc(r.name)}」，可以到名單頁改。</p>`:"")+`</article>`;
+    }
+    if(c.status==="rejected")return `<article class="scard off">${head}<p class="hint" style="margin:0">已標記不收。</p></article>`;
+    const id=esc(s.id),busy=c.status==="busy";
+    const needChoice=!!s.sameNameKidId&&!c.choice;
+    const canAccept=c.called&&!needChoice&&!busy;
+    return `<article class="scard" data-sid="${id}">${head}
+      <div class="sphone"><span class="rel">${esc(s.rel)}</span><span class="pnum">${esc(c.phone)}</span>
+        <button class="slink" type="button" data-sedit aria-expanded="${c.editing}">${c.editing?"改好了":"修改號碼"}</button></div>
+      ${c.editing?`<div class="cprow"><label class="sr" for="sp-${id}">修改${esc(s.name)}家長的電話</label><input type="tel" inputmode="tel" id="sp-${id}" data-sphone maxlength="20" autocomplete="off" value="${esc(c.phone)}"></div>`:""}
+      <p class="sagree">✓ 已同意教室規則・免責聲明${relTime(s.time)?"（"+esc(relTime(s.time))+"）":""}</p>
+      ${s.sameNameKidId?`<div class="ssame"><p>名單裡已經有「${esc(s.name)}」</p><div class="choice" role="group" aria-label="是不是同一個孩子">
+        <button type="button" data-schoice="same" aria-pressed="${c.choice==="same"}">是同一個孩子（只補電話）</button>
+        <button type="button" data-schoice="diff" aria-pressed="${c.choice==="diff"}">是不同孩子（另外新增）</button></div></div>`:""}
+      <div class="sacts">
+        <a class="sbtn scall${c.called?" called":""}" href="tel:${esc(digits(c.phone))}" data-scall>${c.called?"① 再撥一次":"① 撥打確認"}</a>
+        <button class="sbtn sok" type="button" data-sok aria-disabled="${!canAccept}">${busy?"收下中…":"② 有響，收下"}</button>
+      </div>
+      <div class="sfoot"><span class="err" role="status">${esc(c.msg||"")}</span>
+        <button class="sno${c.armNo?" armed":""}" type="button" data-sno>${c.armNo?"再按一次確認不收":"不收"}</button></div>
+    </article>`;
+  }
+  function renderSignups(){
+    if(!sOpen)return;
+    const box=$("sList");
+    if(!sItems.length){box.innerHTML=sLoading?`<p class="hint">讀取中…</p>`:`<div class="empty">目前沒有等待確認的新朋友。</div>`;return}
+    const f=document.activeElement,fsid=f&&f.closest&&f.closest("[data-sid]");
+    const keep=fsid?[fsid.dataset.sid,[...f.attributes].map(a=>a.name).find(n=>/^data-s(edit|phone|choice|call|ok|no)$/.test(n))]:null;
+    box.innerHTML=sItems.map(cardHtml).join("");
+    if(keep&&keep[1]){const card=[...box.querySelectorAll("[data-sid]")].find(x=>x.dataset.sid===keep[0]);const el=card&&card.querySelector(`[${keep[1]}]`);if(el)el.focus()}
+  }
+  async function reloadData(){
+    try{const d=await api("getData");if(state.pending===0){apply(d);render()}}catch(e){console.error(e)}
+  }
+  async function acceptS(c){
+    if(c.status==="busy")return;
+    const s=c.s;
+    if(!c.called){c.msg="請先按「① 撥打確認」，電話有響再收下。";renderSignups();return}
+    if(s.sameNameKidId&&!c.choice){c.msg="請先選是不是同一個孩子。";renderSignups();return}
+    if(digits(c.phone).length<6){c.msg="電話號碼太短了。";renderSignups();return}
+    const opts={date:state.date,slot:state.slot};
+    if(s.sameNameKidId)opts.mergeKidId=c.choice==="same"?s.sameNameKidId:null;
+    if(digits(c.phone)!==digits(s.phone))opts.phone=c.phone.trim();
+    c.status="busy";c.msg="";renderSignups();
+    try{
+      const r=await api("acceptSignup",s.id,opts);
+      c.status="done";c.result=r;sMark.delete(s.id);renderSignups();
+      await reloadData();
+    }catch(e){
+      console.error(e);c.status="";
+      const m=String(e&&e.message||e);
+      c.msg=/BAD_PIN/.test(m)?"":/同名/.test(m)?"名單裡剛好有同名的孩子，請先選是不是同一個。":"沒有收成功："+m;
+      renderSignups();
+      if(/同名/.test(m))loadSignups();
+    }
+  }
+  let disarm=null;
+  async function rejectS(c){
+    if(c.status==="busy")return;
+    if(!c.armNo){
+      sItems.forEach(x=>x.armNo=false);c.armNo=true;c.msg="";renderSignups();
+      clearTimeout(disarm);disarm=setTimeout(()=>{if(c.armNo){c.armNo=false;renderSignups()}},5000);
+      return;
+    }
+    c.armNo=false;c.status="busy";renderSignups();
+    try{await api("rejectSignup",c.s.id);c.status="rejected";sMark.delete(c.s.id);renderSignups();await reloadData()}
+    catch(e){console.error(e);c.status="";c.msg="沒有存到："+String(e&&e.message||e);renderSignups()}
+  }
+
+  function render(){renderBanner();renderSlots();renderRoll();if(state.view==="stats")renderStats();if(state.view==="list")renderList()}
 
   // ---------- 事件 ----------
   document.querySelector(".tabs").addEventListener("click",e=>{
@@ -581,6 +744,31 @@ td.num{font-family:var(--num);font-weight:700}
   });
   $("mContacts").addEventListener("input",e=>{const i=e.target.dataset.ci;if(i!=null&&e.target.tagName==="INPUT")mContacts[+i].phone=e.target.value});
   $("mAddParent").addEventListener("click",()=>{if(mContacts.length<MAXC){mContacts.push({rel:mContacts.some(c=>c.rel==="媽媽")?"爸爸":"媽媽",phone:""});drawContacts();$("mPhone"+(mContacts.length-1)).focus()}});
+
+  $("signupBanner").addEventListener("click",openSignups);
+  $("sClose").addEventListener("click",closeSignups);
+  $("sModal").addEventListener("click",e=>{if(e.target===$("sModal"))closeSignups()});
+  document.addEventListener("keydown",e=>{if(e.key==="Escape"&&sOpen)closeSignups()});
+  $("sList").addEventListener("click",e=>{
+    const card=e.target.closest("[data-sid]");if(!card)return;
+    const c=findS(card.dataset.sid);if(!c)return;
+    if(e.target.closest("[data-scall]")){
+      // 讓 tel: 連結照常撥出，畫面晚一點再更新
+      c.called=true;c.msg="";sMark.set(c.s.id,{...(sMark.get(c.s.id)||{}),called:true});setTimeout(renderSignups,0);return;
+    }
+    if(e.target.closest("[data-sedit]")){c.editing=!c.editing;renderSignups();if(c.editing){const i=card.ownerDocument.getElementById("sp-"+c.s.id);if(i)i.focus()}return}
+    const ch=e.target.closest("[data-schoice]");
+    if(ch){c.choice=ch.dataset.schoice;c.msg="";sMark.set(c.s.id,{...(sMark.get(c.s.id)||{}),choice:c.choice});renderSignups();return}
+    if(e.target.closest("[data-sok]")){acceptS(c);return}
+    if(e.target.closest("[data-sno]")){rejectS(c);return}
+  });
+  $("sList").addEventListener("input",e=>{
+    if(!e.target.matches("[data-sphone]"))return;
+    const card=e.target.closest("[data-sid]");const c=card&&findS(card.dataset.sid);if(!c)return;
+    c.phone=e.target.value;
+    card.querySelector(".pnum").textContent=c.phone;
+    card.querySelector("[data-scall]").setAttribute("href","tel:"+digits(c.phone));
+  });
 
   // 多台裝置同時點名：每 20 秒、或切回這個畫面時更新一次
   setInterval(()=>{if(!document.hidden)refresh(true)},20000);

@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-    paths: ['src/index.html', '.github/workflows/pages.yml']
+    paths: ['src/index.html', 'src/signup.html', '.github/workflows/pages.yml']
   workflow_dispatch:
 
 permissions:
@@ -32,6 +32,7 @@ jobs:
           test -n "$APPS_SCRIPT_URL" || { echo "請在 repo 的 Actions variables 設定 APPS_SCRIPT_URL"; exit 1; }
           mkdir -p _site
           sed "s#__APPS_SCRIPT_URL__#${APPS_SCRIPT_URL}#" src/index.html > _site/index.html
+          sed "s#__APPS_SCRIPT_URL__#${APPS_SCRIPT_URL}#" src/signup.html > _site/signup.html
           touch _site/.nojekyll
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
