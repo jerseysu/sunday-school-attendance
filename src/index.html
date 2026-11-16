@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<base target="_top">
+<title>主日學點名</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Huninn&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=LXGW+WenKai+TC:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* 糖果天空：天空藍底、薄荷綠＝到了、太陽黃＝選中；圓體字、大按鈕、按鈕下有厚陰影像糖果 */
+  --bg:#EAF5FD;--card:#FFFFFF;--ink:#23415E;--muted:#4E6A82;--line:#CFE3F1;
+  --sky:#2F7FB8;--sky-d:#1F5F8E;--sky-soft:#E1EEF7;
+  --mint:#3BB58A;--mint-d:#2A9470;--mint-soft:#DDF3EA;
+  --sun:#FFD45C;--sun-d:#E9B93A;--warn:#B4562F;--warn-soft:#FFF0E4;--orange:#F2A65A;
+  --cute:"Huninn","LXGW WenKai TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --num:"Fredoka","Huninn",sans-serif;
+  color-scheme:light;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--cute);font-size:20px;line-height:1.5;-webkit-tap-highlight-color:transparent;overflow-x:hidden}
+body::before,body::after{content:"";position:fixed;z-index:0;border-radius:999px;pointer-events:none}
+body::before{top:-50px;right:-50px;width:220px;height:130px;background:#fff;opacity:.85}
+body::after{bottom:-70px;left:-60px;width:260px;height:160px;background:var(--mint-soft)}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:4px solid var(--sky);outline-offset:3px}
+.wrap{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding:18px 16px 130px}
+
+header.top{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+h1{font-size:36px;margin:0;letter-spacing:2px;font-weight:400;display:flex;align-items:center;gap:12px}
+h1::before{content:"";width:48px;height:48px;border-radius:16px;background:var(--sun) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2323415E' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.6 6.7 19.4l1.2-6L3.4 9.3l6-.7z'/%3E%3C/svg%3E") center/28px no-repeat;flex:none}
+.tabs{display:flex;gap:6px;background:var(--card);border-radius:22px;padding:6px;box-shadow:0 4px 0 var(--line)}
+.tabs button{border:0;background:transparent;padding:8px 20px;border-radius:16px;font-size:21px;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--sky);color:#fff}
+
+.status{display:none;margin:8px 0 14px;padding:12px 16px;border-radius:18px;background:var(--warn-soft);color:var(--warn);font-size:18px}
+.status.show{display:block}
+
+.bar{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:stretch;margin-bottom:14px}
+.when{background:var(--card);border-radius:26px;padding:14px 18px;display:flex;flex-direction:column;gap:12px;box-shadow:0 5px 0 var(--line)}
+.dateline{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.datebig{font-size:28px}
+.changedate{font-size:16px;border:2px solid var(--line);background:#fff;border-radius:12px;padding:2px 12px;color:var(--muted)}
+#dateInput{font-size:18px;padding:4px 8px;border:2px solid var(--line);border-radius:12px;background:#fff}
+.slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:520px}
+.slots button{border:3px solid var(--line);background:#fff;border-radius:16px;padding:8px 0;font-size:22px;color:var(--muted)}
+.slots button[aria-pressed="true"]{border-color:var(--sun-d);background:var(--sun);color:var(--ink)}
+.count{background:var(--mint);color:#fff;border-radius:26px;padding:12px 26px;display:flex;flex-direction:column;justify-content:center;align-items:center;min-width:180px;box-shadow:0 5px 0 var(--mint-d)}
+.count .n{font-family:var(--num);font-size:70px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
+.count .l{font-size:20px}
+.hint{color:var(--muted);font-size:18px;margin:0 0 12px}
+.syncing{font-size:15px;color:var(--muted);margin-left:auto}
+
+.group-h{font-size:22px;margin:18px 0 10px;color:var(--sky);font-weight:400}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
+.kid{position:relative;min-height:96px;border:3px solid var(--line);background:#fff;border-radius:26px;padding:10px;font-size:30px;text-align:center;line-height:1.2;box-shadow:0 6px 0 var(--line);transition:background .12s,transform .08s;word-break:break-all}
+.kid .tag{display:block;font-size:15px;color:var(--sky);margin-top:4px}
+.kid.on{background:var(--mint);border-color:var(--mint);color:#fff;box-shadow:0 6px 0 var(--mint-d)}
+.kid.on .tag{color:#EFFFF7}
+.kid.on::after{content:"";position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233BB58A' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/17px no-repeat}
+.kid:active{transform:translateY(4px);box-shadow:0 2px 0 var(--line)}
+.kid.on:active{box-shadow:0 2px 0 var(--mint-d)}
+.newfab{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);border:0;background:var(--sky);color:#fff;font-size:24px;padding:14px 34px;border-radius:999px;box-shadow:0 6px 0 var(--sky-d);z-index:5}
+.empty{background:#fff;border:3px dashed var(--line);border-radius:26px;padding:28px;text-align:center;color:var(--muted)}
+
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:16px}
+.tile{background:#fff;border-radius:24px;padding:14px 18px;box-shadow:0 5px 0 var(--line)}
+.tile:last-child{background:var(--sun);box-shadow:0 5px 0 var(--sun-d)}
+.tile .v{font-family:var(--num);font-size:44px;font-weight:700;line-height:1.1}
+.tile .k{color:var(--muted);font-size:17px}
+.tile:last-child .k{color:var(--ink)}
+.panel{background:#fff;border-radius:26px;padding:16px 20px;margin-bottom:16px;box-shadow:0 5px 0 var(--line)}
+.panel h2{font-size:24px;margin:0 0 10px;font-weight:400}
+.chart{display:flex;align-items:flex-end;gap:8px;height:190px;padding-top:26px;border-bottom:3px solid var(--line);overflow-x:auto}
+.col{flex:1 0 30px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative}
+.col .b{width:100%;max-width:44px;background:#8CC8EE;border-radius:14px 14px 6px 6px;min-height:4px}
+.col .b.last{background:var(--mint)}
+.col .t{position:absolute;font-family:var(--num);font-size:16px;font-weight:700}
+.xlab{display:flex;gap:8px;overflow-x:hidden}
+.xlab span{flex:1 0 30px;text-align:center;font-size:13px;color:var(--muted)}
+table{width:100%;border-collapse:collapse;font-size:18px}
+th,td{text-align:left;padding:8px 6px;border-bottom:2px solid var(--bg)}
+th{color:var(--muted);font-size:16px;font-weight:400}
+td.num{font-family:var(--num);font-weight:700}
+.pill{display:inline-block;padding:2px 12px;border-radius:999px;font-size:15px}
+.pill.warn{background:var(--orange);color:var(--ink)}
+.pill.new{background:var(--mint-soft);color:#1E7A57}
+.tablewrap{overflow-x:auto}
+
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 0;border-bottom:2px solid var(--bg)}
+.row .nm{font-size:24px;flex:1 1 120px}
+.row.off .nm{color:var(--muted);text-decoration:line-through}
+.btn{border:3px solid var(--line);background:#fff;border-radius:14px;padding:4px 14px;font-size:17px}
+.btn.primary{background:var(--sky);border-color:var(--sky);color:#fff}
+.btn.danger{color:var(--warn);border-color:var(--warn-soft)}
+
+.modal{position:fixed;inset:0;background:rgba(20,45,70,.4);display:none;align-items:center;justify-content:center;padding:16px;z-index:10}
+.modal.show{display:flex}
+.dialog{background:#fff;border-radius:28px;padding:22px;width:min(480px,100%);display:flex;flex-direction:column;gap:14px;box-shadow:0 8px 0 var(--line)}
+.dialog h2{margin:0;font-size:30px;font-weight:400}
+.dialog label{font-size:18px;color:var(--muted)}
+.dialog input[type=text]{font-size:28px;padding:10px 14px;border:3px solid var(--line);border-radius:18px;width:100%;background:var(--bg)}
+.choice{display:flex;gap:10px}
+.choice button{flex:1;border:3px solid var(--line);background:#fff;border-radius:18px;padding:10px;font-size:22px;color:var(--muted)}
+.choice button[aria-pressed="true"]{border-color:var(--sun-d);background:var(--sun);color:var(--ink)}
+.actions{display:flex;gap:10px;justify-content:flex-end}
+.actions .btn{font-size:21px;padding:10px 22px}
+.err{color:var(--warn);font-size:17px;min-height:1em}
+
+.pin{position:fixed;inset:0;background:var(--bg);display:none;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:16px;z-index:20}
+.pin.show{display:flex}
+.pin h2{font-size:32px;margin:0;font-weight:400}
+.dots{display:flex;gap:16px;height:28px}
+.dots span{width:24px;height:24px;border-radius:50%;border:3px solid var(--sky);background:#fff}
+.dots span.f{background:var(--sun);border-color:var(--sun-d)}
+.keys{display:grid;grid-template-columns:repeat(3,88px);gap:14px}
+.keys button{height:78px;border-radius:24px;border:3px solid var(--line);background:#fff;font-family:var(--num);font-size:34px;font-weight:700;box-shadow:0 5px 0 var(--line)}
+.keys button[data-k]{font-family:var(--cute);font-size:20px;font-weight:400}
+.keys button:active{transform:translateY(3px);box-shadow:0 2px 0 var(--line)}
+
+/* 手機：分頁移到底部、名字兩欄、新增鈕改成右下圓鈕 */
+@media (max-width:640px){
+  body{font-size:18px}
+  .wrap{padding:14px 14px 150px}
+  h1{font-size:28px}
+  h1::before{width:40px;height:40px;background-size:24px}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;border-radius:24px 24px 0 0;padding:8px 10px 18px;box-shadow:0 -3px 0 var(--line);display:grid;grid-template-columns:repeat(3,1fr)}
+  .tabs button{padding:10px 0;font-size:18px}
+  .tabs button[aria-selected="true"]{background:var(--sky-soft);color:var(--sky)}
+  .bar{grid-template-columns:1fr}
+  .count{flex-direction:row;gap:10px;min-width:0;padding:10px 18px;justify-content:flex-start}
+  .count .n{font-size:44px}
+  .datebig{font-size:22px}
+  .slots button{font-size:19px}
+  .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .kid{font-size:28px;min-height:80px;border-radius:22px}
+  .newfab{left:auto;right:16px;transform:none;bottom:96px;width:66px;height:66px;padding:0;font-size:0;border-radius:50%}
+  .newfab::before{content:"";display:block;width:30px;height:30px;margin:auto;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M12 5v14M5 12h14'/%3E%3C/svg%3E") center/contain no-repeat}
+  .keys{grid-template-columns:repeat(3,78px)}
+  .keys button{height:70px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1>主日學點名</h1>
+    <nav class="tabs" role="tablist">
+      <button id="tab-roll" role="tab" aria-selected="true" data-view="roll">點名</button>
+      <button id="tab-stats" role="tab" aria-selected="false" data-view="stats">統計</button>
+      <button id="tab-list" role="tab" aria-selected="false" data-view="list">名單</button>
+    </nav>
+  </header>
+  <div id="status" class="status" role="status"></div>
+
+  <!-- 點名 -->
+  <section id="view-roll">
+    <div class="bar">
+      <div class="when">
+        <div class="dateline">
+          <span class="datebig" id="dateText"></span>
+          <button class="changedate" id="changeDate" type="button">改日期</button>
+          <span class="syncing" id="sync"></span>
+          <input type="date" id="dateInput" hidden>
+        </div>
+        <div class="slots" id="slots"></div>
+      </div>
+      <div class="count"><span class="n" id="countN">0</span><span class="l">位孩子來了</span></div>
+    </div>
+    <p class="hint">孩子到了就按一下名字，變成綠色就好了。按錯了，再按一次就取消。</p>
+    <div id="roll"></div>
+  </section>
+
+  <!-- 統計 -->
+  <section id="view-stats" hidden>
+    <div class="tiles" id="tiles"></div>
+    <div class="panel">
+      <h2>最近 12 次的人數</h2>
+      <div class="chart" id="chart"></div>
+      <div class="xlab" id="xlab"></div>
+    </div>
+    <div class="panel">
+      <h2>好久不見，打個電話吧</h2>
+      <p class="hint" style="margin-bottom:6px">超過 3 週沒有出現的孩子</p>
+      <div id="missing"></div>
+    </div>
+    <div class="panel">
+      <h2>每次紀錄</h2>
+      <div class="tablewrap"><table><thead><tr><th>日期</th><th>場次</th><th>人數</th><th>新朋友</th></tr></thead><tbody id="history"></tbody></table></div>
+    </div>
+  </section>
+
+  <!-- 名單 -->
+  <section id="view-list" hidden>
+    <div class="panel">
+      <h2>孩子名單</h2>
+      <p class="hint">改名字、改年齡層，或把不再來的孩子先「收起來」，點名畫面就不會顯示。紀錄都會保留。</p>
+      <div id="kidList"></div>
+    </div>
+  </section>
+</div>
+
+<button class="newfab" id="newBtn" type="button" aria-label="新朋友／新增孩子">＋ 新朋友／新增孩子</button>
+
+<div class="pin" id="pin" role="dialog" aria-modal="true" aria-labelledby="pinTitle">
+  <h2 id="pinTitle">請輸入教室密碼</h2>
+  <p class="hint" style="margin:0">只要輸入一次，這台裝置會記住</p>
+  <div class="dots" id="dots"><span></span><span></span><span></span><span></span></div>
+  <div class="err" id="pinErr"></div>
+  <div class="keys" id="keys">
+    <button type="button">1</button><button type="button">2</button><button type="button">3</button>
+    <button type="button">4</button><button type="button">5</button><button type="button">6</button>
+    <button type="button">7</button><button type="button">8</button><button type="button">9</button>
+    <button type="button" data-k="clr">清除</button><button type="button">0</button><button type="button" data-k="del">⌫</button>
+  </div>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mTitle">
+  <div class="dialog">
+    <h2 id="mTitle">新增孩子</h2>
+    <label for="mName">孩子的名字（小名也可以）</label>
+    <input type="text" id="mName" autocomplete="off" maxlength="20">
+    <label>年齡層</label>
+    <div class="choice" id="mGroup">
+      <button type="button" data-g="0-3" aria-pressed="true">0–3 歲</button>
+      <button type="button" data-g="3-6" aria-pressed="false">3–6 歲</button>
+    </div>
+    <div class="choice" id="mNewWrap">
+      <button type="button" id="mNew" aria-pressed="true">今天第一次來（新朋友）</button>
+    </div>
+    <div class="err" id="mErr"></div>
+    <div class="actions">
+      <button class="btn" type="button" id="mCancel">取消</button>
+      <button class="btn primary" type="button" id="mSave">加入並點名</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const SLOTS=[{id:"sun",name:"主日",dow:0},{id:"wed",name:"週三",dow:3},{id:"thu",name:"週四",dow:4},{id:"sat",name:"週六",dow:6}];
+  const slotName=id=>(SLOTS.find(s=>s.id===id)||{}).name||id;
+  const pad=n=>String(n).padStart(2,"0");
+  const iso=d=>d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate());
+  const parse=s=>{const [y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+  const WK=["日","一","二","三","四","五","六"];
+  const pretty=s=>{const d=parse(s);return (d.getMonth()+1)+" 月 "+d.getDate()+" 日（"+WK[d.getDay()]+"）"};
+  const short=s=>{const d=parse(s);return (d.getMonth()+1)+"/"+d.getDate()};
+
+  const state={date:iso(new Date()),slot:null,kids:new Map(),sessions:new Map(),pin:null,view:"roll",editId:null,pending:0,loaded:false};
+  const dow=new Date().getDay();
+  state.slot=(SLOTS.find(s=>s.dow===dow)||SLOTS[0]).id;
+
+  const $=id=>document.getElementById(id);
+  const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  function status(msg){const el=$("status");el.textContent=msg||"";el.classList.toggle("show",!!msg)}
+  function sync(msg){$("sync").textContent=msg||""}
+
+  // ---------- 呼叫後端 ----------
+  function api(fn,...args){
+    return new Promise((resolve,reject)=>{
+      google.script.run.withSuccessHandler(resolve).withFailureHandler(err=>{
+        if(String(err&&err.message||err).indexOf("BAD_PIN")>=0){forgetPin();showPin("密碼不對，請再輸入一次");}
+        reject(err);
+      })[fn](state.pin,...args);
+    });
+  }
+  function apply(data){
+    state.kids=new Map(data.kids.map(k=>[k.id,k]));
+    const m=new Map();
+    data.records.forEach(r=>{const k=r.date+"_"+r.slot;if(!m.has(k))m.set(k,{date:r.date,slot:r.slot,present:{}});m.get(k).present[r.kidId]=true});
+    state.sessions=m;state.loaded=true;
+  }
+  let loading=false;
+  async function refresh(quiet){
+    if(loading||state.pending>0||!state.pin)return;
+    loading=true;if(!quiet)sync("更新中…");
+    try{const d=await api("getData");if(state.pending===0){apply(d);render()}sync("");status("")}
+    catch(e){sync("");if(!/BAD_PIN/.test(String(e&&e.message||e)))status("連不上資料，請確認網路後再試。")}
+    finally{loading=false}
+  }
+
+  // ---------- 密碼 ----------
+  let entry="";
+  function getPin(){try{return localStorage.getItem("roll-pin")}catch(e){return null}}
+  function savePin(p){try{localStorage.setItem("roll-pin",p)}catch(e){}}
+  function forgetPin(){state.pin=null;try{localStorage.removeItem("roll-pin")}catch(e){}}
+  function showPin(err){entry="";drawDots();$("pinErr").textContent=err||"";$("pin").classList.add("show")}
+  function drawDots(){[...$("dots").children].forEach((s,i)=>s.classList.toggle("f",i<entry.length))}
+  $("keys").addEventListener("click",async e=>{
+    const b=e.target.closest("button");if(!b)return;
+    if(b.dataset.k==="clr")entry="";else if(b.dataset.k==="del")entry=entry.slice(0,-1);else if(entry.length<4)entry+=b.textContent;
+    drawDots();
+    if(entry.length===4){
+      state.pin=entry;$("pinErr").textContent="確認中…";
+      try{const d=await api("getData");savePin(state.pin);$("pin").classList.remove("show");apply(d);render()}
+      catch(err){if(!/BAD_PIN/.test(String(err&&err.message||err))){$("pinErr").textContent="連不上，請確認網路";entry="";drawDots()}}
+    }
+  });
+
+  const key=()=>state.date+"_"+state.slot;
+  const cur=()=>state.sessions.get(key());
+  const presentIds=s=>s&&s.present?Object.keys(s.present).filter(k=>s.present[k]):[];
+  const activeKids=()=>[...state.kids.entries()].filter(([,k])=>k.active!==false);
+  const byName=(a,b)=>String(a[1].name).localeCompare(String(b[1].name),"zh-Hant");
+
+  // ---------- 點名畫面 ----------
+  function renderSlots(){
+    $("dateText").textContent=pretty(state.date);
+    $("slots").innerHTML=SLOTS.map(s=>`<button type="button" data-slot="${s.id}" aria-pressed="${s.id===state.slot}">${s.name}</button>`).join("");
+  }
+  function renderRoll(){
+    const s=cur();const on=new Set(presentIds(s));
+    $("countN").textContent=presentIds(s).filter(id=>state.kids.has(id)).length;
+    if(!state.loaded){$("roll").innerHTML=`<div class="empty">名單載入中…</div>`;return}
+    const kids=activeKids();
+    on.forEach(id=>{const k=state.kids.get(id);if(k&&k.active===false)kids.push([id,k])});
+    if(!kids.length){$("roll").innerHTML=`<div class="empty">名單還是空的。<br>按下面的「＋ 新朋友 / 新增孩子」，把孩子的名字加進來。</div>`;return}
+    let html="";
+    [["0-3","0–3 歲"],["3-6","3–6 歲"]].forEach(([g,label])=>{
+      const list=kids.filter(([,k])=>(k.group||"0-3")===g).sort(byName);
+      if(!list.length)return;
+      html+=`<h3 class="group-h">${label}</h3><div class="grid">`+list.map(([id,k])=>{
+        const isNew=k.firstSeen===key();
+        return `<button type="button" class="kid${on.has(id)?" on":""}" data-id="${esc(id)}" aria-pressed="${on.has(id)}">${esc(k.name)}${isNew?'<span class="tag">新朋友</span>':""}</button>`;
+      }).join("")+`</div>`;
+    });
+    $("roll").innerHTML=html;
+  }
+
+  // ---------- 寫入（依序送出，畫面先變色） ----------
+  let chain=Promise.resolve();
+  function queue(fn){state.pending++;sync("儲存中…");chain=chain.then(fn).catch(e=>{console.error(e);if(!/BAD_PIN/.test(String(e&&e.message||e)))status("剛剛那一下沒有存到，請再按一次。")}).finally(()=>{state.pending--;if(state.pending===0){sync("");refresh(true)}});return chain}
+  function setLocal(id,val){
+    const k=key();if(!state.sessions.has(k))state.sessions.set(k,{date:state.date,slot:state.slot,present:{}});
+    const s=state.sessions.get(k);if(val)s.present[id]=true;else delete s.present[id];
+  }
+  function toggle(id){
+    const on=presentIds(cur()).includes(id);
+    const date=state.date,slot=state.slot;
+    setLocal(id,!on);renderRoll();
+    queue(()=>api("setPresent",date,slot,id,!on));
+  }
+
+  // ---------- 新增 / 修改孩子 ----------
+  let mGroup="0-3",mNew=true;
+  function openModal(editId){
+    state.editId=editId||null;
+    const k=editId?state.kids.get(editId):null;
+    $("mTitle").textContent=k?"修改孩子資料":"新增孩子";
+    $("mName").value=k?k.name:"";
+    mGroup=k?(k.group||"0-3"):"0-3";mNew=!k;
+    $("mNewWrap").hidden=!!k;
+    $("mSave").textContent=k?"儲存":"加入並點名";
+    syncChoice();$("mErr").textContent="";
+    $("modal").classList.add("show");setTimeout(()=>$("mName").focus(),50);
+  }
+  function closeModal(){$("modal").classList.remove("show")}
+  function syncChoice(){
+    document.querySelectorAll("#mGroup button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.g===mGroup)));
+    $("mNew").setAttribute("aria-pressed",String(mNew));
+  }
+  let saving=false;
+  async function saveModal(){
+    if(saving)return;
+    const name=$("mName").value.trim();
+    if(!name){$("mErr").textContent="請輸入名字。";return}
+    saving=true;$("mErr").textContent="儲存中…";
+    try{
+      if(state.editId){
+        const id=state.editId;
+        const k=state.kids.get(id);if(k){k.name=name;k.group=mGroup}
+        closeModal();render();
+        queue(()=>api("updateKid",id,{name,group:mGroup}));
+      }else{
+        const date=state.date,slot=state.slot,fs=mNew?key():"";
+        state.pending++;
+        const r=await api("addKid",name,mGroup,fs).finally(()=>{state.pending--});
+        if(!state.kids.has(r.id))state.kids.set(r.id,{id:r.id,name,group:mGroup,active:true,firstSeen:fs});
+        else state.kids.get(r.id).active=true;
+        closeModal();
+        if(!presentIds(state.sessions.get(date+"_"+slot)).includes(r.id)){setLocal(r.id,true);renderRoll();queue(()=>api("setPresent",date,slot,r.id,true))}
+        else render();
+      }
+    }catch(e){console.error(e);$("mErr").textContent="沒有存到，請再試一次。"}
+    finally{saving=false}
+  }
+
+  // ---------- 統計 ----------
+  function lastSeenMap(){
+    const m=new Map();
+    for(const s of state.sessions.values())for(const id of presentIds(s)){if(!m.has(id)||m.get(id)<s.date)m.set(id,s.date)}
+    return m;
+  }
+  function renderStats(){
+    const all=[...state.sessions.values()].filter(s=>presentIds(s).length).sort((a,b)=>(a.date+a.slot).localeCompare(b.date+b.slot));
+    const count=s=>presentIds(s).filter(id=>state.kids.has(id)).length;
+    const newCount=s=>presentIds(s).filter(id=>{const k=state.kids.get(id);return k&&k.firstSeen===s.date+"_"+s.slot}).length;
+    const ym=state.date.slice(0,7);
+    const month=all.filter(s=>s.date.startsWith(ym));
+    const monthTotal=month.reduce((a,s)=>a+count(s),0);
+    const uniq=new Set();month.forEach(s=>presentIds(s).forEach(id=>uniq.add(id)));
+    const monthNew=month.reduce((a,s)=>a+newCount(s),0);
+    const avg=month.length?(monthTotal/month.length):0;
+    const m=Number(ym.slice(5));
+    $("tiles").innerHTML=[[month.length,m+" 月點名次數"],[avg?avg.toFixed(1):"0",m+" 月平均每次人數"],[uniq.size,m+" 月來過的孩子"],[monthNew,m+" 月新朋友"]]
+      .map(([v,k])=>`<div class="tile"><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
+    const last=all.slice(-12);const max=Math.max(1,...last.map(count));
+    $("chart").innerHTML=last.length?last.map((s,i)=>{const c=count(s);const h=Math.round(c/max*100);
+      return `<div class="col" title="${short(s.date)} ${slotName(s.slot)}：${c} 位"><span class="t" style="bottom:calc(${h}% + 4px)">${c}</span><div class="b${i===last.length-1?" last":""}" style="height:${h}%"></div></div>`}).join("")
+      :`<p class="hint" style="align-self:center">還沒有點名紀錄。</p>`;
+    $("xlab").innerHTML=last.map(s=>`<span>${short(s.date)}<br>${slotName(s.slot)}</span>`).join("");
+    const seen=lastSeenMap();const today=parse(iso(new Date()));
+    const miss=activeKids().map(([id,k])=>({id,k,ls:seen.get(id)})).filter(x=>x.ls&&(today-parse(x.ls))/86400000>21).sort((a,b)=>a.ls.localeCompare(b.ls));
+    $("missing").innerHTML=miss.length?`<div class="tablewrap"><table><thead><tr><th>孩子</th><th>最後一次來</th><th>隔了</th></tr></thead><tbody>`+
+      miss.map(x=>`<tr><td><b>${esc(x.k.name)}</b></td><td>${pretty(x.ls)}</td><td><span class="pill warn">${Math.floor((today-parse(x.ls))/86400000/7)} 週</span></td></tr>`).join("")+`</tbody></table></div>`
+      :`<p class="hint" style="margin:0">目前沒有超過 3 週沒來的孩子。</p>`;
+    $("history").innerHTML=all.slice().reverse().slice(0,60).map(s=>{const n=newCount(s);
+      return `<tr><td>${pretty(s.date)}</td><td>${slotName(s.slot)}</td><td class="num">${count(s)}</td><td>${n?`<span class="pill new">${n} 位</span>`:"—"}</td></tr>`}).join("")||`<tr><td colspan="4" class="hint">還沒有點名紀錄。</td></tr>`;
+  }
+
+  // ---------- 名單 ----------
+  function renderList(){
+    const seen=lastSeenMap();
+    const kids=[...state.kids.entries()].sort((a,b)=>((a[1].active===false)-(b[1].active===false))||byName(a,b));
+    $("kidList").innerHTML=kids.length?kids.map(([id,k])=>{const off=k.active===false;
+      return `<div class="row${off?" off":""}"><span class="nm">${esc(k.name)}</span><span class="pill new">${k.group==="3-6"?"3–6 歲":"0–3 歲"}</span><span class="hint" style="margin:0;font-size:16px">${seen.get(id)?"最後一次："+short(seen.get(id)):"還沒點過名"}</span>
+      <button class="btn" type="button" data-edit="${esc(id)}">修改</button>
+      <button class="btn ${off?"primary":"danger"}" type="button" data-hide="${esc(id)}">${off?"放回點名":"收起來"}</button></div>`}).join("")
+      :`<p class="hint">名單還是空的。</p>`;
+  }
+  function toggleHide(id){
+    const k=state.kids.get(id);if(!k)return;
+    const val=k.active===false;k.active=val;render();
+    queue(()=>api("updateKid",id,{active:val}));
+  }
+
+  function render(){renderSlots();renderRoll();if(state.view==="stats")renderStats();if(state.view==="list")renderList()}
+
+  // ---------- 事件 ----------
+  document.querySelector(".tabs").addEventListener("click",e=>{
+    const b=e.target.closest("button[data-view]");if(!b)return;state.view=b.dataset.view;
+    document.querySelectorAll(".tabs button").forEach(x=>x.setAttribute("aria-selected",String(x===b)));
+    ["roll","stats","list"].forEach(v=>$("view-"+v).hidden=v!==state.view);
+    $("newBtn").hidden=state.view==="stats";render();
+  });
+  $("slots").addEventListener("click",e=>{const b=e.target.closest("button[data-slot]");if(!b)return;state.slot=b.dataset.slot;render()});
+  $("roll").addEventListener("click",e=>{const b=e.target.closest(".kid");if(b)toggle(b.dataset.id)});
+  $("changeDate").addEventListener("click",()=>{const i=$("dateInput");i.hidden=!i.hidden;i.value=state.date;if(!i.hidden)i.focus()});
+  $("dateInput").addEventListener("change",e=>{if(e.target.value){state.date=e.target.value;const d=parse(state.date).getDay();const s=SLOTS.find(x=>x.dow===d);if(s)state.slot=s.id;render()}});
+  $("newBtn").addEventListener("click",()=>openModal());
+  $("mCancel").addEventListener("click",closeModal);
+  $("mSave").addEventListener("click",saveModal);
+  $("mName").addEventListener("keydown",e=>{if(e.key==="Enter")saveModal()});
+  $("mGroup").addEventListener("click",e=>{const b=e.target.closest("button[data-g]");if(b){mGroup=b.dataset.g;syncChoice()}});
+  $("mNew").addEventListener("click",()=>{mNew=!mNew;syncChoice()});
+  $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
+  $("kidList").addEventListener("click",e=>{const ed=e.target.closest("[data-edit]");if(ed)openModal(ed.dataset.edit);const h=e.target.closest("[data-hide]");if(h)toggleHide(h.dataset.hide)});
+
+  // 多台裝置同時點名：每 20 秒、或切回這個畫面時更新一次
+  setInterval(()=>{if(!document.hidden)refresh(true)},20000);
+  document.addEventListener("visibilitychange",()=>{if(!document.hidden)refresh(true)});
+
+  render();
+  state.pin=getPin();
+  if(state.pin)refresh();else showPin();
+})();
+</script>
+</body>
+</html>
