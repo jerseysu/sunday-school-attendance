@@ -48,4 +48,11 @@ jobs:
         if: env.HAS_CLASP == 'true'
         env:
           DEPLOYMENT_ID: ${{ secrets.DEPLOYMENT_ID }}
-        run: npx --yes @google/clasp@2.4.2 deploy --deploymentId "$DEPLOYMENT_ID" --description "${GITHUB_SHA::7} $(git log -1 --pretty=%s | head -c 80)"
+        run: |
+          # Accept either the bare ID or the full /exec URL, and drop stray spaces/newlines
+          ID=$(printf '%s' "$DEPLOYMENT_ID" | tr -d '[:space:]' | sed -E 's#^.*/s/([^/]+)/(exec|dev).*$#\1#')
+          echo "Deployment ID: ${ID:0:8}…${ID: -6} (${#ID} chars)"
+          case "$ID" in AKfy*) ;; *) echo "::error::DEPLOYMENT_ID should start with AKfy (the part between /s/ and /exec)"; exit 1;; esac
+          echo "Existing deployments:"
+          npx --yes @google/clasp@2.4.2 deployments || true
+          npx --yes @google/clasp@2.4.2 deploy --deploymentId "$ID" --description "${GITHUB_SHA::7} via GitHub Actions"
