@@ -47,6 +47,10 @@ input[type=tel]{font-family:var(--num);letter-spacing:1px}
 .choice{display:flex;gap:10px}
 .choice button{flex:1;min-height:56px;border:3px solid var(--line);background:#fff;border-radius:18px;padding:8px;font-size:21px;color:var(--muted);box-shadow:0 4px 0 var(--line)}
 .choice button[aria-pressed="true"]{border-color:var(--sun-d);background:var(--sun);color:var(--ink);box-shadow:0 4px 0 var(--sun-d)}
+.srcs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.srcs button{font-size:18px;min-height:52px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.opt{font-size:14px;color:var(--muted);background:#EAF5FD;border-radius:10px;padding:2px 8px;margin-left:6px;vertical-align:middle}
 .choice button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
 
 details{border:2px dashed var(--line);border-radius:18px;background:#F7FBFE}
@@ -129,6 +133,20 @@ details[open] summary::after{content:"收起 ▴"}
     </div>
 
     <div class="card">
+      <span class="q" id="srcLabel">您是怎麼知道我們的？<span class="opt">可以不填</span></span>
+      <div class="choice srcs" id="src" role="group" aria-labelledby="srcLabel">
+        <button type="button" data-v="親友介紹" aria-pressed="false">親友介紹</button>
+        <button type="button" data-v="教會的人邀請" aria-pressed="false">教會的人邀請</button>
+        <button type="button" data-v="經過看到" aria-pressed="false">經過看到</button>
+        <button type="button" data-v="Facebook／IG" aria-pressed="false">Facebook／IG</button>
+        <button type="button" data-v="傳單或海報" aria-pressed="false">傳單或海報</button>
+        <button type="button" data-v="其他" aria-pressed="false">其他</button>
+      </div>
+      <label class="vh" for="srcOther">其他管道，補充說明</label>
+      <input class="text" type="text" id="srcOther" maxlength="20" autocomplete="off" placeholder="可以簡單寫一下，例如：鄰居" hidden style="margin-top:10px">
+    </div>
+
+    <div class="card">
       <details id="rulesBox">
         <summary>教室規則</summary>
         <div class="doc empty" id="rulesText">讀取中…</div>
@@ -172,7 +190,7 @@ details[open] summary::after{content:"收起 ▴"}
   const $=id=>document.getElementById(id);
   const RULES_EMPTY="（教會還沒有填寫教室規則，有問題請直接問現場老師。）";
   const WAIVER_EMPTY="（教會還沒有填寫免責聲明，有問題請直接問現場老師。）";
-  const form={group:"",rel:"",agreeRules:false,agreeWaiver:false};
+  const form={group:"",rel:"",src:"",agreeRules:false,agreeWaiver:false};
   let version=null,sending=false;
 
   // ---------- 呼叫後端（不用密碼，只能送出報名） ----------
@@ -205,9 +223,10 @@ details[open] summary::after{content:"收起 ▴"}
 
   // ---------- 表單 ----------
   function draw(){
-    [["group",form.group],["rel",form.rel]].forEach(([id,v])=>{
+    [["group",form.group],["rel",form.rel],["src",form.src]].forEach(([id,v])=>{
       $(id).querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===v)));
     });
+    $("srcOther").hidden=form.src!=="其他";
     $("agreeRules").setAttribute("aria-checked",String(form.agreeRules));
     $("agreeWaiver").setAttribute("aria-checked",String(form.agreeWaiver));
     const ready=form.agreeRules&&form.agreeWaiver;
@@ -217,6 +236,7 @@ details[open] summary::after{content:"收起 ▴"}
   }
   $("group").addEventListener("click",e=>{const b=e.target.closest("button[data-v]");if(b){form.group=b.dataset.v;draw()}});
   $("rel").addEventListener("click",e=>{const b=e.target.closest("button[data-v]");if(b){form.rel=b.dataset.v;draw()}});
+  $("src").addEventListener("click",e=>{const b=e.target.closest("button[data-v]");if(b){form.src=form.src===b.dataset.v?"":b.dataset.v;draw();if(form.src==="其他")$("srcOther").focus()}});
   $("agreeRules").addEventListener("click",()=>{form.agreeRules=!form.agreeRules;draw()});
   $("agreeWaiver").addEventListener("click",()=>{form.agreeWaiver=!form.agreeWaiver;draw()});
 
@@ -239,7 +259,8 @@ details[open] summary::after{content:"收起 ▴"}
     const name=$("name").value.trim(),rel=form.rel;
     try{
       const r=await api("submitSignup",{name,group:form.group,rel,phone:$("phone").value.trim(),
-        agreeRules:form.agreeRules,agreeWaiver:form.agreeWaiver,version,website:$("website").value});
+        agreeRules:form.agreeRules,agreeWaiver:form.agreeWaiver,version,website:$("website").value,
+        source:form.src==="其他"?($("srcOther").value.trim()?"其他："+$("srcOther").value.trim():"其他"):form.src});
       $("doneCode").textContent=String(r&&r.code||"");
       $("doneWho").textContent=name+"・"+rel;
       $("form").hidden=true;$("done").hidden=false;

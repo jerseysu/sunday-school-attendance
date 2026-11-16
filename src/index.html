@@ -135,6 +135,14 @@ td.num{font-family:var(--num);font-weight:700}
 .fpill .fdot{width:8px;height:8px}
 .fpill[data-f="基督徒"]{background:#E3F5EC;color:#1E6B4E}.fpill[data-f="慕道中"]{background:#FFF0E4;color:#8A4A12}.fpill[data-f="還沒信"]{background:#EEF2F6;color:#3E5568}
 .nophonetxt{flex:1;font-size:15px;color:var(--muted)}
+.srcs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.srcs button{font-size:17px;padding:6px}
+.srcwrap{display:flex;flex-direction:column;gap:8px;border-top:2px dashed var(--line);padding-top:12px}
+#mSrcOther{font-size:18px;padding:8px 12px;border:3px solid var(--line);border-radius:14px;background:var(--bg)}
+.srcrow{display:grid;grid-template-columns:7.5em 1fr 2.5em;align-items:center;gap:10px;font-size:17px;margin:6px 0}
+.srcbar{height:18px;border-radius:9px;background:var(--line);overflow:hidden}.srcbar i{display:block;height:100%;background:var(--sky);border-radius:9px}
+.srcrow b{font-family:var(--num);text-align:right}
+.ssrc{margin:0;font-size:15px;color:var(--muted)}
 .carehint{margin:0 0 8px;font-size:15px;color:#8A4A12;background:#FFF0E4;border-radius:12px;padding:6px 10px}
 .cprow{display:flex;gap:8px}
 .cprow input{flex:1;min-width:0;font-family:var(--num);font-size:22px;letter-spacing:1px;padding:8px 12px;border:3px solid var(--line);border-radius:14px;background:var(--bg)}
@@ -274,6 +282,11 @@ td.num{font-family:var(--num);font-weight:700}
       <div id="missing"></div>
     </div>
     <div class="panel">
+      <h2>怎麼認識我們的</h2>
+      <p class="hint" style="margin-bottom:6px">名單上的孩子，家長是從哪裡知道主日學的</p>
+      <div id="sources"></div>
+    </div>
+    <div class="panel">
       <h2>每次紀錄</h2>
       <div class="tablewrap"><table><thead><tr><th>日期</th><th>場次</th><th>人數</th><th>新朋友</th></tr></thead><tbody id="history"></tbody></table></div>
     </div>
@@ -318,6 +331,12 @@ td.num{font-family:var(--num);font-weight:700}
     </div>
     <div class="choice" id="mNewWrap">
       <button type="button" id="mNew" aria-pressed="true">今天第一次來（新朋友）</button>
+    </div>
+    <div class="srcwrap">
+      <div class="chead"><span class="ctitle" id="mSrcL">怎麼知道我們的？</span><span class="opt">可以不填</span></div>
+      <div class="choice srcs" id="mSrc" role="group" aria-labelledby="mSrcL"></div>
+      <label class="sr" for="mSrcOther">其他管道，補充說明</label>
+      <input id="mSrcOther" maxlength="20" autocomplete="off" placeholder="例如：鄰居、公園認識的" hidden>
     </div>
     <div class="contacts">
       <div class="chead"><span class="ctitle">家長聯絡方式</span><span class="opt">可以不填</span></div>
@@ -503,7 +522,7 @@ td.num{font-family:var(--num);font-weight:700}
     mGroup=k?(k.group||"0-3"):"0-3";mNew=!k;
     $("mNewWrap").hidden=!!k;
     $("mSave").textContent=k?"儲存":"加入並點名";
-    syncChoice();$("mErr").textContent="";
+    syncChoice();setSrc(k?k.source:"");$("mErr").textContent="";
     $("modal").classList.add("show");setTimeout(()=>$("mName").focus(),50);
     if(!k){mContacts=[{rel:"媽媽",phone:"",faith:""}];mOrig="[]";mLoaded=true;drawContacts();return}
     const cached=state.contacts&&state.contacts[editId];
@@ -519,6 +538,16 @@ td.num{font-family:var(--num);font-weight:700}
     drawContacts();
   }
   function closeModal(){$("modal").classList.remove("show")}
+  // 家長怎麼知道我們（統計用）
+  const SOURCES=["親友介紹","教會的人邀請","經過看到","Facebook／IG","傳單或海報","其他"];
+  const srcBase=v=>{v=String(v||"");return v.startsWith("其他")?"其他":v};
+  let mSrc="",mSrcOrig="";
+  const srcValue=()=>{if(mSrc!=="其他")return mSrc;const o=$("mSrcOther").value.trim();return o?"其他："+o:"其他"};
+  function drawSrc(){
+    $("mSrc").innerHTML=SOURCES.map(v=>`<button type="button" data-src="${v}" aria-pressed="${mSrc===v}">${v}</button>`).join("");
+    $("mSrcOther").hidden=mSrc!=="其他";
+  }
+  function setSrc(v){v=String(v||"");mSrc=srcBase(v);$("mSrcOther").value=v.startsWith("其他：")?v.slice(3):"";mSrcOrig=v;drawSrc()}
   function syncChoice(){
     document.querySelectorAll("#mGroup button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.g===mGroup)));
     $("mNew").setAttribute("aria-pressed",String(mNew));
@@ -537,13 +566,16 @@ td.num{font-family:var(--num);font-weight:700}
         const phonesChanged=mLoaded&&JSON.stringify(list)!==mOrig;
         if(phonesChanged){if(k)k.hasContact=list.some(hasPhone);if(state.contacts)state.contacts[id]=list}
         closeModal();render();
-        queue(()=>api("updateKid",id,{name,group:mGroup}));
+        const src=srcValue(),fields={name,group:mGroup};
+        if(src!==mSrcOrig){fields.source=src;if(k)k.source=src}
+        queue(()=>api("updateKid",id,fields));
         if(phonesChanged)queue(()=>api("setContacts",id,list));
       }else{
         const date=state.date,slot=state.slot,fs=mNew?key():"";
         state.pending++;
-        const r=await api("addKid",name,mGroup,fs,list).finally(()=>{state.pending--});
-        if(!state.kids.has(r.id))state.kids.set(r.id,{id:r.id,name,group:mGroup,active:true,firstSeen:fs,hasContact:!!r.hasContact});
+        const src=srcValue();
+        const r=await api("addKid",name,mGroup,fs,list,src).finally(()=>{state.pending--});
+        if(!state.kids.has(r.id))state.kids.set(r.id,{id:r.id,name,group:mGroup,active:true,firstSeen:fs,hasContact:!!r.hasContact,source:src});
         else{const kk=state.kids.get(r.id);kk.active=true;kk.hasContact=!!r.hasContact}
         if(state.contacts&&list.length)state.contacts[r.id]=list;
         closeModal();
@@ -583,6 +615,12 @@ td.num{font-family:var(--num);font-weight:700}
     $("missing").innerHTML=miss.length?`<div class="tablewrap"><table><thead><tr><th>孩子</th><th>最後一次來</th><th>隔了</th></tr></thead><tbody>`+
       miss.map(x=>`<tr><td><b>${esc(x.k.name)}</b></td><td>${pretty(x.ls)}</td><td><span class="pill warn">${Math.floor((today-parse(x.ls))/86400000/7)} 週</span></td></tr>`).join("")+`</tbody></table></div>`
       :`<p class="hint" style="margin:0">目前沒有超過 3 週沒來的孩子。</p>`;
+    // 怎麼認識我們：名單上（沒收起來）的孩子，依家長填的管道統計
+    const act=activeKids(),srcN={};act.forEach(([,k])=>{const b=srcBase(k.source)||"沒填";srcN[b]=(srcN[b]||0)+1});
+    const srcList=SOURCES.concat(["沒填"]).filter(b=>srcN[b]).map(b=>[b,srcN[b]]).sort((a,b)=>(a[0]==="沒填")-(b[0]==="沒填")||b[1]-a[1]);
+    const srcMax=Math.max(1,...srcList.map(x=>x[1]));
+    $("sources").innerHTML=srcList.length?srcList.map(([b,n])=>`<div class="srcrow"><span>${esc(b)}</span><span class="srcbar" aria-hidden="true"><i style="width:${Math.round(n/srcMax*100)}%"></i></span><b>${n}</b></div>`).join("")
+      :`<p class="hint" style="margin:0">名單還是空的。</p>`;
     $("history").innerHTML=all.slice().reverse().slice(0,60).map(s=>{const n=newCount(s);
       return `<tr><td>${pretty(s.date)}</td><td>${slotName(s.slot)}</td><td class="num">${count(s)}</td><td>${n?`<span class="pill new">${n} 位</span>`:"—"}</td></tr>`}).join("")||`<tr><td colspan="4" class="hint">還沒有點名紀錄。</td></tr>`;
   }
@@ -686,6 +724,7 @@ td.num{font-family:var(--num);font-weight:700}
       <div class="sphone"><span class="rel">${esc(s.rel)}</span><span class="pnum">${esc(c.phone)}</span>
         <button class="slink" type="button" data-sedit aria-expanded="${c.editing}">${c.editing?"改好了":"修改號碼"}</button></div>
       ${c.editing?`<div class="cprow"><label class="sr" for="sp-${id}">修改${esc(s.name)}家長的電話</label><input type="tel" inputmode="tel" id="sp-${id}" data-sphone maxlength="20" autocomplete="off" value="${esc(c.phone)}"></div>`:""}
+      ${s.source?`<p class="ssrc">怎麼知道我們：${esc(s.source)}</p>`:""}
       <p class="sagree">✓ 已同意教室規則・免責聲明${relTime(s.time)?"（"+esc(relTime(s.time))+"）":""}</p>
       ${s.sameNameKidId?`<div class="ssame"><p>名單裡已經有「${esc(s.name)}」</p><div class="choice" role="group" aria-label="是不是同一個孩子">
         <button type="button" data-schoice="same" aria-pressed="${c.choice==="same"}">是同一個孩子（只補電話）</button>
@@ -728,7 +767,7 @@ td.num{font-family:var(--num);font-weight:700}
       // 直接在畫面上加進名單並點好名，不用等下一次同步
       const k=state.kids.get(r.kidId);
       if(k){k.active=true;k.hasContact=true}
-      else state.kids.set(r.kidId,{id:r.kidId,name:r.name||s.name,group:r.group||s.group,active:true,firstSeen:r.firstSeen||"",hasContact:true});
+      else state.kids.set(r.kidId,{id:r.kidId,name:r.name||s.name,group:r.group||s.group,active:true,firstSeen:r.firstSeen||"",hasContact:true,source:s.source||""});
       const sk=opts.date+"_"+opts.slot;
       if(!state.sessions.has(sk))state.sessions.set(sk,{date:opts.date,slot:opts.slot,present:{}});
       state.sessions.get(sk).present[r.kidId]=true;
@@ -786,6 +825,7 @@ td.num{font-family:var(--num);font-weight:700}
     const h=e.target.closest("[data-hide]");if(h)toggleHide(h.dataset.hide);
     const sh=e.target.closest("[data-show]");if(sh){const k=sh.dataset.show;state.shown.has(k)?state.shown.delete(k):state.shown.add(k);renderList()}
   });
+  $("mSrc").addEventListener("click",e=>{const b=e.target.closest("[data-src]");if(!b)return;mSrc=mSrc===b.dataset.src?"":b.dataset.src;drawSrc();if(mSrc==="其他")$("mSrcOther").focus()});
   $("listFilter").addEventListener("click",e=>{const b=e.target.closest("[data-filter]");if(b){state.listFilter=b.dataset.filter;renderList()}});
   $("mContacts").addEventListener("click",e=>{
     const r=e.target.closest("[data-rel]");if(r){mContacts[+r.dataset.ci].rel=r.dataset.rel;drawContacts();return}
