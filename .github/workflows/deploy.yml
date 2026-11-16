@@ -13,16 +13,26 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
+    # 沒設定 CLASPRC_JSON 等 secrets 時整個跳過（手動部署也可以用）
+    env:
+      HAS_CLASP: ${{ secrets.CLASPRC_JSON != '' && secrets.SCRIPT_ID != '' && secrets.DEPLOYMENT_ID != '' }}
     steps:
+      - name: Skip notice
+        if: env.HAS_CLASP != 'true'
+        run: echo "::notice::尚未設定 CLASPRC_JSON / SCRIPT_ID / DEPLOYMENT_ID，跳過自動部署 Apps Script"
       - uses: actions/checkout@v4
+        if: env.HAS_CLASP == 'true'
       - uses: actions/setup-node@v4
+        if: env.HAS_CLASP == 'true'
         with:
           node-version: 20
 
       - name: Syntax check
+        if: env.HAS_CLASP == 'true'
         run: node scripts/check.mjs
 
       - name: Write clasp credentials
+        if: env.HAS_CLASP == 'true'
         env:
           CLASPRC_JSON: ${{ secrets.CLASPRC_JSON }}
           SCRIPT_ID: ${{ secrets.SCRIPT_ID }}
@@ -31,9 +41,11 @@ jobs:
           printf '{"scriptId":"%s","rootDir":"src"}' "$SCRIPT_ID" > .clasp.json
 
       - name: Push code
+        if: env.HAS_CLASP == 'true'
         run: npx --yes @google/clasp@2.4.2 push --force
 
       - name: Update the live web app (same URL)
+        if: env.HAS_CLASP == 'true'
         env:
           DEPLOYMENT_ID: ${{ secrets.DEPLOYMENT_ID }}
         run: npx --yes @google/clasp@2.4.2 deploy --deploymentId "$DEPLOYMENT_ID" --description "${GITHUB_SHA::7} $(git log -1 --pretty=%s | head -c 80)"
