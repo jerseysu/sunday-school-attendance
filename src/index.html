@@ -343,8 +343,14 @@ td.num{font-family:var(--num);font-weight:700}
   const short=s=>{const d=parse(s);return (d.getMonth()+1)+"/"+d.getDate()};
 
   const state={date:iso(new Date()),slot:null,kids:new Map(),sessions:new Map(),pin:null,view:"roll",editId:null,pending:0,loaded:false,contacts:null,listFilter:"all",shown:new Set(),pendingSignups:0};
-  const dow=new Date().getDay();
-  state.slot=(SLOTS.find(s=>s.dow===dow)||SLOTS[0]).id;
+  // 日期和場次永遠對得上：往回找最近一個「該場次的星期幾」（當天就是那天）
+  const backTo=(dateStr,dow)=>{const d=parse(dateStr);d.setDate(d.getDate()-((d.getDay()-dow+7)%7));return iso(d)};
+  const snapToSession=dateStr=>{
+    let best=null;
+    SLOTS.forEach(s=>{const d=backTo(dateStr,s.dow);if(!best||d>best.date)best={date:d,slot:s.id}});
+    return best;
+  };
+  {const b=snapToSession(state.date);state.date=b.date;state.slot=b.slot}
 
   const $=id=>document.getElementById(id);
   const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -721,10 +727,13 @@ td.num{font-family:var(--num);font-weight:700}
     if(state.view!=="list"){state.contacts=null;state.shown.clear()} // 離開名單頁就把電話從記憶體清掉
     $("newBtn").hidden=state.view==="stats";render();
   });
-  $("slots").addEventListener("click",e=>{const b=e.target.closest("button[data-slot]");if(!b)return;state.slot=b.dataset.slot;render()});
+  $("slots").addEventListener("click",e=>{const b=e.target.closest("button[data-slot]");if(!b)return;state.slot=b.dataset.slot;const s=SLOTS.find(x=>x.id===state.slot);
+    // 以目前選的那一週為準（週一到主日），但不跑到未來
+    const end=parse(state.date);end.setDate(end.getDate()+(7-end.getDay())%7);const today=iso(new Date());
+    state.date=backTo(iso(end)<today?iso(end):today,s.dow);render()});
   $("roll").addEventListener("click",e=>{const b=e.target.closest(".kid");if(b)toggle(b.dataset.id)});
   $("changeDate").addEventListener("click",()=>{const i=$("dateInput");i.hidden=!i.hidden;i.value=state.date;if(!i.hidden)i.focus()});
-  $("dateInput").addEventListener("change",e=>{if(e.target.value){state.date=e.target.value;const d=parse(state.date).getDay();const s=SLOTS.find(x=>x.dow===d);if(s)state.slot=s.id;render()}});
+  $("dateInput").addEventListener("change",e=>{if(e.target.value){const b=snapToSession(e.target.value);state.date=b.date;state.slot=b.slot;e.target.value=b.date;render()}});
   $("newBtn").addEventListener("click",()=>openModal());
   $("mCancel").addEventListener("click",closeModal);
   $("mSave").addEventListener("click",saveModal);
