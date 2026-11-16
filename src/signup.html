@@ -40,15 +40,14 @@ h1{font-size:30px;margin:0;font-weight:400;letter-spacing:1px;line-height:1.25}
 .card{background:var(--card);border-radius:26px;padding:16px 18px;margin-bottom:14px;box-shadow:0 5px 0 var(--line);display:flex;flex-direction:column;gap:10px}
 .q{font-size:20px;margin:0;font-weight:400;display:block}
 .q .req{font-size:14px;color:var(--warn);background:var(--warn-soft);border-radius:10px;padding:1px 8px;margin-left:6px;vertical-align:2px}
-input.text{width:100%;min-height:56px;font-size:24px;padding:8px 14px;border:3px solid var(--line);border-radius:18px;background:var(--bg)}
+input.text,select.text{width:100%;min-height:56px;font-size:24px;padding:8px 14px;border:3px solid var(--line);border-radius:18px;background:var(--bg)}
 input.text:focus{border-color:var(--sky);background:#fff}
 input[type=tel]{font-family:var(--num);letter-spacing:1px}
 .hint{color:var(--muted);font-size:16px;margin:0}
 .choice{display:flex;gap:10px}
 .choice button{flex:1;min-height:56px;border:3px solid var(--line);background:#fff;border-radius:18px;padding:8px;font-size:21px;color:var(--muted);box-shadow:0 4px 0 var(--line)}
 .choice button[aria-pressed="true"]{border-color:var(--sun-d);background:var(--sun);color:var(--ink);box-shadow:0 4px 0 var(--sun-d)}
-.srcs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.srcs button{font-size:18px;min-height:52px}
+select.text{appearance:auto;background:#fff;font-size:21px;color:var(--ink)}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
 .opt{font-size:14px;color:var(--muted);background:#EAF5FD;border-radius:10px;padding:2px 8px;margin-left:6px;vertical-align:middle}
 .choice button:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
@@ -133,15 +132,16 @@ details[open] summary::after{content:"收起 ▴"}
     </div>
 
     <div class="card">
-      <span class="q" id="srcLabel">您是怎麼知道我們的？<span class="opt">可以不填</span></span>
-      <div class="choice srcs" id="src" role="group" aria-labelledby="srcLabel">
-        <button type="button" data-v="親友介紹" aria-pressed="false">親友介紹</button>
-        <button type="button" data-v="教會的人邀請" aria-pressed="false">教會的人邀請</button>
-        <button type="button" data-v="經過看到" aria-pressed="false">經過看到</button>
-        <button type="button" data-v="Facebook／IG" aria-pressed="false">Facebook／IG</button>
-        <button type="button" data-v="傳單或海報" aria-pressed="false">傳單或海報</button>
-        <button type="button" data-v="其他" aria-pressed="false">其他</button>
-      </div>
+      <label class="q" for="src">您是怎麼知道我們的？<span class="opt">可以不填</span></label>
+      <select class="text" id="src">
+        <option value="">請選擇</option>
+        <option value="親友介紹">親友介紹</option>
+        <option value="教會的人邀請">教會的人邀請</option>
+        <option value="經過看到">經過看到</option>
+        <option value="Threads／IG">Threads／IG</option>
+        <option value="傳單或海報">傳單或海報</option>
+        <option value="其他">其他</option>
+      </select>
       <label class="vh" for="srcOther">其他管道，補充說明</label>
       <input class="text" type="text" id="srcOther" maxlength="20" autocomplete="off" placeholder="可以簡單寫一下，例如：鄰居" hidden style="margin-top:10px">
     </div>
@@ -223,7 +223,7 @@ details[open] summary::after{content:"收起 ▴"}
 
   // ---------- 表單 ----------
   function draw(){
-    [["group",form.group],["rel",form.rel],["src",form.src]].forEach(([id,v])=>{
+    [["group",form.group],["rel",form.rel]].forEach(([id,v])=>{
       $(id).querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===v)));
     });
     $("srcOther").hidden=form.src!=="其他";
@@ -236,7 +236,7 @@ details[open] summary::after{content:"收起 ▴"}
   }
   $("group").addEventListener("click",e=>{const b=e.target.closest("button[data-v]");if(b){form.group=b.dataset.v;draw()}});
   $("rel").addEventListener("click",e=>{const b=e.target.closest("button[data-v]");if(b){form.rel=b.dataset.v;draw()}});
-  $("src").addEventListener("click",e=>{const b=e.target.closest("button[data-v]");if(b){form.src=form.src===b.dataset.v?"":b.dataset.v;draw();if(form.src==="其他")$("srcOther").focus()}});
+  $("src").addEventListener("change",e=>{form.src=e.target.value;draw();if(form.src==="其他")$("srcOther").focus()});
   $("agreeRules").addEventListener("click",()=>{form.agreeRules=!form.agreeRules;draw()});
   $("agreeWaiver").addEventListener("click",()=>{form.agreeWaiver=!form.agreeWaiver;draw()});
 

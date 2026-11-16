@@ -20,11 +20,12 @@ const SLOTS_ = ['sun', 'wed', 'thu', 'sat'];
 const MAX_CONTACTS_ = 2;
 const FAITHS_ = ['基督徒', '慕道中', '還沒信']; // 空白＝不清楚
 // 家長怎麼知道我們（統計用）；選「其他」可以補一句說明，存成「其他：…」
-const SOURCES_ = ['親友介紹', '教會的人邀請', '經過看到', 'Facebook／IG', '傳單或海報', '其他'];
+const SOURCES_ = ['親友介紹', '教會的人邀請', '經過看到', 'Threads／IG', '傳單或海報', '其他'];
 const SOURCE_COL_ = 7; // 孩子名單第 7 欄
 function cleanSource_(v) {
   v = String(v == null ? '' : v).trim();
   if (!v) return '';
+  if (v === 'Facebook／IG') v = 'Threads／IG'; // 舊選項
   if (SOURCES_.indexOf(v) >= 0) return v;
   const m = v.match(/^其他[：:]\s*(.*)$/);
   if (m) { const d = Array.from(m[1].trim()).slice(0, 20).join(''); return d ? '其他：' + d : '其他'; }

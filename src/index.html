@@ -135,8 +135,7 @@ td.num{font-family:var(--num);font-weight:700}
 .fpill .fdot{width:8px;height:8px}
 .fpill[data-f="基督徒"]{background:#E3F5EC;color:#1E6B4E}.fpill[data-f="慕道中"]{background:#FFF0E4;color:#8A4A12}.fpill[data-f="還沒信"]{background:#EEF2F6;color:#3E5568}
 .nophonetxt{flex:1;font-size:15px;color:var(--muted)}
-.srcs{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.srcs button{font-size:17px;padding:6px}
+.srcsel{font:inherit;font-size:19px;padding:10px 12px;border:3px solid var(--line);border-radius:14px;background:#fff;color:var(--ink);width:100%}
 .srcwrap{display:flex;flex-direction:column;gap:8px;border-top:2px dashed var(--line);padding-top:12px}
 #mSrcOther{font-size:18px;padding:8px 12px;border:3px solid var(--line);border-radius:14px;background:var(--bg)}
 .srcrow{display:grid;grid-template-columns:7.5em 1fr 2.5em;align-items:center;gap:10px;font-size:17px;margin:6px 0}
@@ -333,8 +332,8 @@ td.num{font-family:var(--num);font-weight:700}
       <button type="button" id="mNew" aria-pressed="true">今天第一次來（新朋友）</button>
     </div>
     <div class="srcwrap">
-      <div class="chead"><span class="ctitle" id="mSrcL">怎麼知道我們的？</span><span class="opt">可以不填</span></div>
-      <div class="choice srcs" id="mSrc" role="group" aria-labelledby="mSrcL"></div>
+      <div class="chead"><label class="ctitle" for="mSrc">怎麼知道我們的？</label><span class="opt">可以不填</span></div>
+      <select id="mSrc" class="srcsel"></select>
       <label class="sr" for="mSrcOther">其他管道，補充說明</label>
       <input id="mSrcOther" maxlength="20" autocomplete="off" placeholder="例如：鄰居、公園認識的" hidden>
     </div>
@@ -539,12 +538,13 @@ td.num{font-family:var(--num);font-weight:700}
   }
   function closeModal(){$("modal").classList.remove("show")}
   // 家長怎麼知道我們（統計用）
-  const SOURCES=["親友介紹","教會的人邀請","經過看到","Facebook／IG","傳單或海報","其他"];
-  const srcBase=v=>{v=String(v||"");return v.startsWith("其他")?"其他":v};
+  const SOURCES=["親友介紹","教會的人邀請","經過看到","Threads／IG","傳單或海報","其他"];
+  const srcBase=v=>{v=String(v||"");return v.startsWith("其他")?"其他":v==="Facebook／IG"?"Threads／IG":v};
   let mSrc="",mSrcOrig="";
   const srcValue=()=>{if(mSrc!=="其他")return mSrc;const o=$("mSrcOther").value.trim();return o?"其他："+o:"其他"};
   function drawSrc(){
-    $("mSrc").innerHTML=SOURCES.map(v=>`<button type="button" data-src="${v}" aria-pressed="${mSrc===v}">${v}</button>`).join("");
+    if(!$("mSrc").options.length)$("mSrc").innerHTML=`<option value="">請選擇</option>`+SOURCES.map(v=>`<option value="${v}">${v}</option>`).join("");
+    $("mSrc").value=SOURCES.includes(mSrc)?mSrc:"";
     $("mSrcOther").hidden=mSrc!=="其他";
   }
   function setSrc(v){v=String(v||"");mSrc=srcBase(v);$("mSrcOther").value=v.startsWith("其他：")?v.slice(3):"";mSrcOrig=v;drawSrc()}
@@ -825,7 +825,7 @@ td.num{font-family:var(--num);font-weight:700}
     const h=e.target.closest("[data-hide]");if(h)toggleHide(h.dataset.hide);
     const sh=e.target.closest("[data-show]");if(sh){const k=sh.dataset.show;state.shown.has(k)?state.shown.delete(k):state.shown.add(k);renderList()}
   });
-  $("mSrc").addEventListener("click",e=>{const b=e.target.closest("[data-src]");if(!b)return;mSrc=mSrc===b.dataset.src?"":b.dataset.src;drawSrc();if(mSrc==="其他")$("mSrcOther").focus()});
+  $("mSrc").addEventListener("change",e=>{mSrc=e.target.value;drawSrc();if(mSrc==="其他")$("mSrcOther").focus()});
   $("listFilter").addEventListener("click",e=>{const b=e.target.closest("[data-filter]");if(b){state.listFilter=b.dataset.filter;renderList()}});
   $("mContacts").addEventListener("click",e=>{
     const r=e.target.closest("[data-rel]");if(r){mContacts[+r.dataset.ci].rel=r.dataset.rel;drawContacts();return}
