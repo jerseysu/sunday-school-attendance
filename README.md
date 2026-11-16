@@ -120,6 +120,27 @@ npx @google/clasp@2.4.2 push         # push to the Apps Script test deployment (
 
 `.clasp.json`, `.clasprc.json` and the PIN are never committed. The PIN only lives in the Apps Script script properties.
 
+## Tests
+
+`tests/run_e2e.py` runs browser tests (Playwright, phone-sized viewport) against `tests/mock_server.js`, which executes the real `src/Code.gs` against an in-memory spreadsheet. Each `tests/e2e/test_*.py` file gets a fresh server.
+
+| File | Covers |
+|---|---|
+| `test_signup_flow.py` | Parent sign-up validation and honeypot, teacher banner, call-then-accept, reject, same-name merge, idempotent accept, 14-day expiry, daily cap, PIN checks |
+| `test_contacts.py` | Parent phones in the add/edit dialog, masking, 撥打 link, 缺電話 filter, deleting a number |
+| `test_faith.py` | Parent faith status, 關懷家庭 filter, editing |
+| `test_source.py` | How families found us (sign-up dropdown, teacher dialog, carried over on accept, stats) |
+| `test_date_slot.py` | Date and session stay in sync (clock fixed to a Monday) |
+| `test_migration.py` | Old 家長聯絡 sheets get the new columns without losing data |
+
+```bash
+pip install playwright && python -m playwright install chromium
+python tests/run_e2e.py            # all
+python tests/run_e2e.py faith      # just files matching "faith"
+```
+
+CI runs the syntax check and these tests on every PR and branch push; both deploy workflows run them first and only deploy if they pass. Screenshots are uploaded as the `e2e-screenshots` artifact.
+
 ## Troubleshooting
 
 - **"No HTML file named index was found"** (or `signup`): that HTML file is missing from the Apps Script project (step 4)

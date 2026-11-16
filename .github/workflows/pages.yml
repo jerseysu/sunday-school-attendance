@@ -3,7 +3,7 @@ name: Deploy to GitHub Pages
 on:
   push:
     branches: [main]
-    paths: ['src/index.html', 'src/signup.html', '.github/workflows/pages.yml']
+    paths: ['src/**', 'tests/**', '.github/workflows/pages.yml', '.github/workflows/ci.yml']
   workflow_dispatch:
 
 permissions:
@@ -16,7 +16,11 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  test:
+    uses: ./.github/workflows/ci.yml
+
   build:
+    needs: test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
