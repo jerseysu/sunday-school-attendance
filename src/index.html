@@ -216,7 +216,7 @@ td.num{font-family:var(--num);font-weight:700}
 <div class="pin" id="pin" role="dialog" aria-modal="true" aria-labelledby="pinTitle">
   <h2 id="pinTitle">請輸入教室密碼</h2>
   <p class="hint" style="margin:0">只要輸入一次，這台裝置會記住</p>
-  <div class="dots" id="dots"><span></span><span></span><span></span><span></span></div>
+  <div class="dots" id="dots"></div>
   <div class="err" id="pinErr"></div>
   <div class="keys" id="keys">
     <button type="button">1</button><button type="button">2</button><button type="button">3</button>
@@ -308,6 +308,8 @@ td.num{font-family:var(--num);font-weight:700}
 
   // ---------- 密碼 ----------
   let entry="";
+  const PIN_LEN=5; // 教室密碼位數，要和 Script Properties 的 PIN 一樣長
+  $("dots").innerHTML="<span></span>".repeat(PIN_LEN);
   function getPin(){try{return localStorage.getItem("roll-pin")}catch(e){return null}}
   function savePin(p){try{localStorage.setItem("roll-pin",p)}catch(e){}}
   function forgetPin(){state.pin=null;try{localStorage.removeItem("roll-pin")}catch(e){}}
@@ -315,12 +317,12 @@ td.num{font-family:var(--num);font-weight:700}
   function drawDots(){[...$("dots").children].forEach((s,i)=>s.classList.toggle("f",i<entry.length))}
   $("keys").addEventListener("click",async e=>{
     const b=e.target.closest("button");if(!b)return;
-    if(b.dataset.k==="clr")entry="";else if(b.dataset.k==="del")entry=entry.slice(0,-1);else if(entry.length<4)entry+=b.textContent;
+    if(b.dataset.k==="clr")entry="";else if(b.dataset.k==="del")entry=entry.slice(0,-1);else if(entry.length<PIN_LEN)entry+=b.textContent;
     drawDots();
-    if(entry.length===4){
+    if(entry.length===PIN_LEN){
       state.pin=entry;$("pinErr").textContent="確認中…";
       try{const d=await api("getData");savePin(state.pin);$("pin").classList.remove("show");apply(d);render()}
-      catch(err){if(!/BAD_PIN/.test(String(err&&err.message||err))){$("pinErr").textContent="連不上，請確認網路";entry="";drawDots()}}
+      catch(err){const m=String(err&&err.message||err);if(!/BAD_PIN/.test(m)){$("pinErr").textContent=/Failed to fetch|NetworkError|Load failed/.test(m)?"連不上，請確認網路":"出錯了："+m;entry="";drawDots()}}
     }
   });
 
