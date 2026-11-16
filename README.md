@@ -49,4 +49,5 @@ clasp deploy -d "說明"               # 建立新版本；更新既有部署用
 
 - 孩子名字是個資：網址只傳給同工，不要貼到公開群組
 - 個人 Google 帳號部署的網頁，上方會有一行「此應用程式由 Google Apps Script 使用者建立」，這是 Google 固定的提示
+- 頁首 logo 會跟著場次換：主日「蒙式主日學」、週六「有一村」、週三週四「蒙式角落」。logo 原檔在 `assets/`，嵌在 `src/index.html` 裡
 - 設計稿（Claude Design）：https://claude.ai/artifact/KQqfXTZoF9ciRMTRyUYqvc
