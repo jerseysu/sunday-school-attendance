@@ -1,10 +1,16 @@
-name: CI
+name: Test
 
+# 每次 push（含 main）與 PR 都會跑。main 上通過之後，
+# 「Deploy to GitHub Pages」和「Deploy to Apps Script」才會接著部署這個 commit。
+# 想手動重新部署：Actions › Test › Run workflow（選 main）。
 on:
-  pull_request:
   push:
-    branches-ignore: [main]
-  workflow_call: # the deploy workflows run these tests first
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: test-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   check:

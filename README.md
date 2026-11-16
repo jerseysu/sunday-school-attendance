@@ -69,16 +69,16 @@ The 報名待確認 tab has one row per sign-up: 報名id, 報到碼, 孩子名�
 ## Deployment flow
 
 ```
-feature branch ──PR──▶ CI: syntax check
-                        │ merge
+any branch / PR ──▶ Test: syntax check + e2e tests
+                        │ (on main, only if Test passes)
                         ▼
-                      main ─┬─▶ pages.yml: syntax check → inject API URL → GitHub Pages (frontend)
-                            └─▶ deploy.yml: syntax check → clasp push → update Apps Script deployment (backend, same URL)
+                      main ─┬─▶ pages.yml: inject API URL → GitHub Pages (frontend)
+                            └─▶ deploy.yml: clasp push → update Apps Script deployment (backend, same URL)
 ```
 
-- `ci.yml`: runs `node scripts/check.mjs` on PRs and non-main branches
-- `pages.yml`: republishes the frontend (`index.html` and `signup.html`) when either file changes
-- `deploy.yml`: updates the Apps Script backend on every push to main. It is skipped if the clasp secrets are not set
+- `test.yml` (**Test**): syntax check and end-to-end tests on every push and PR; run it by hand to redeploy main
+- `pages.yml`: after Test passes on main, republishes `index.html` and `signup.html` from the tested commit
+- `deploy.yml`: after Test passes on main, updates the Apps Script backend from the tested commit. It is skipped if the clasp secrets are not set
 - To roll back: `git revert` and push to main, or switch the version back in Apps Script under **Manage deployments**
 
 ### One-time setup: GitHub Pages
@@ -139,7 +139,7 @@ python tests/run_e2e.py            # all
 python tests/run_e2e.py faith      # just files matching "faith"
 ```
 
-CI runs the syntax check and these tests on every PR and branch push; both deploy workflows run them first and only deploy if they pass. Screenshots are uploaded as the `e2e-screenshots` artifact.
+The **Test** workflow (`.github/workflows/test.yml`) runs the syntax check and these tests on every push and PR. **Deploy to GitHub Pages** and **Deploy to Apps Script** start only after Test succeeds on `main`, and they deploy exactly the commit that was tested. To redeploy by hand, run **Actions › Test › Run workflow** on `main`. Screenshots are uploaded as the `e2e-screenshots` artifact.
 
 ## Troubleshooting
 
