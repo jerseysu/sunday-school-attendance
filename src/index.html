@@ -141,6 +141,10 @@ td.num{font-family:var(--num);font-weight:700}
 .srcrow{display:grid;grid-template-columns:7.5em 1fr 2.5em;align-items:center;gap:10px;font-size:17px;margin:6px 0}
 .srcbar{height:18px;border-radius:9px;background:var(--line);overflow:hidden}.srcbar i{display:block;height:100%;background:var(--sky);border-radius:9px}
 .srcrow b{font-family:var(--num);text-align:right}
+.srcnone{border-top:2px dashed var(--line);margin-top:10px;padding-top:10px}
+.srcnone p{margin:0 0 8px;font-size:16px;color:var(--muted)}
+.srcnone .chips{display:flex;flex-wrap:wrap;gap:8px}
+.srcnone .chips button{min-height:44px;padding:4px 14px;border-radius:14px;border:2px dashed #E59A4E;background:#fff;color:#9A4B12;font-size:18px}
 .ssrc{margin:0;font-size:15px;color:var(--muted)}
 .carehint{margin:0 0 8px;font-size:15px;color:#8A4A12;background:#FFF0E4;border-radius:12px;padding:6px 10px}
 .cprow{display:flex;gap:8px}
@@ -619,8 +623,11 @@ td.num{font-family:var(--num);font-weight:700}
     const act=activeKids(),srcN={};act.forEach(([,k])=>{const b=srcBase(k.source)||"沒填";srcN[b]=(srcN[b]||0)+1});
     const srcList=SOURCES.concat(["沒填"]).filter(b=>srcN[b]).map(b=>[b,srcN[b]]).sort((a,b)=>(a[0]==="沒填")-(b[0]==="沒填")||b[1]-a[1]);
     const srcMax=Math.max(1,...srcList.map(x=>x[1]));
-    $("sources").innerHTML=srcList.length?srcList.map(([b,n])=>`<div class="srcrow"><span>${esc(b)}</span><span class="srcbar" aria-hidden="true"><i style="width:${Math.round(n/srcMax*100)}%"></i></span><b>${n}</b></div>`).join("")
-      :`<p class="hint" style="margin:0">名單還是空的。</p>`;
+    // 還沒填管道的孩子：列出名字，點一下就打開修改視窗補上
+    const noSrc=act.filter(([,k])=>!srcBase(k.source)).sort(byName);
+    $("sources").innerHTML=(srcList.length?srcList.map(([b,n])=>`<div class="srcrow"><span>${esc(b)}</span><span class="srcbar" aria-hidden="true"><i style="width:${Math.round(n/srcMax*100)}%"></i></span><b>${n}</b></div>`).join("")
+      :`<p class="hint" style="margin:0">名單還是空的。</p>`)
+      +(noSrc.length?`<div class="srcnone"><p>還沒填的孩子（${noSrc.length}）・點名字就能補上</p><div class="chips">${noSrc.map(([id,k])=>`<button type="button" data-edit="${esc(id)}">${esc(k.name)}</button>`).join("")}</div></div>`:"");
     $("history").innerHTML=all.slice().reverse().slice(0,60).map(s=>{const n=newCount(s);
       return `<tr><td>${pretty(s.date)}</td><td>${slotName(s.slot)}</td><td class="num">${count(s)}</td><td>${n?`<span class="pill new">${n} 位</span>`:"—"}</td></tr>`}).join("")||`<tr><td colspan="4" class="hint">還沒有點名紀錄。</td></tr>`;
   }
@@ -826,6 +833,7 @@ td.num{font-family:var(--num);font-weight:700}
     const sh=e.target.closest("[data-show]");if(sh){const k=sh.dataset.show;state.shown.has(k)?state.shown.delete(k):state.shown.add(k);renderList()}
   });
   $("mSrc").addEventListener("change",e=>{mSrc=e.target.value;drawSrc();if(mSrc==="其他")$("mSrcOther").focus()});
+  $("sources").addEventListener("click",e=>{const b=e.target.closest("[data-edit]");if(b)openModal(b.dataset.edit)});
   $("listFilter").addEventListener("click",e=>{const b=e.target.closest("[data-filter]");if(b){state.listFilter=b.dataset.filter;renderList()}});
   $("mContacts").addEventListener("click",e=>{
     const r=e.target.closest("[data-rel]");if(r){mContacts[+r.dataset.ci].rel=r.dataset.rel;drawContacts();return}
