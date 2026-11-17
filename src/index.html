@@ -538,7 +538,7 @@ td.num{font-family:var(--num);font-weight:700}
   }
   function closeModal(){$("modal").classList.remove("show")}
   // 家長怎麼知道我們（統計用）
-  const SOURCES=["親友介紹","教會的人邀請","經過看到","Threads／IG","傳單或海報","其他"];
+  const SOURCES=["親友介紹","教會的人邀請","蒙式角落","經過看到","Threads／IG","傳單或海報","其他"];
   const srcBase=v=>{v=String(v||"");return v.startsWith("其他")?"其他":v==="Facebook／IG"?"Threads／IG":v};
   let mSrc="",mSrcOrig="";
   const srcValue=()=>{if(mSrc!=="其他")return mSrc;const o=$("mSrcOther").value.trim();return o?"其他："+o:"其他"};
