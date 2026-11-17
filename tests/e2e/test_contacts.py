@@ -46,5 +46,22 @@ with sync_playwright() as p:
 
     pg.click("#tab-roll"); pg.click("#tab-list"); pg.wait_for_selector(".phone")
     ok("0933" not in pg.inner_text("#kidList"), "deleted phone no longer listed after reload")
+
+    # adding a child while on the roster tab shows them there right away,
+    # even when the real backend is slow (each API call delayed like Apps Script)
+    import time
+    def slow(route):
+        if route.request.method == "POST":
+            time.sleep(1.5)
+        route.continue_()
+    pg.route("**/api", slow)
+    pg.click("#newBtn"); pg.fill("#mName", "名單頁新增"); pg.fill("#mPhone0", "0955111222"); pg.click("#mSave")
+    pg.wait_for_selector("#modal.show", state="hidden", timeout=10000)
+    pg.wait_for_function("document.getElementById('kidList').innerText.includes('名單頁新增')", timeout=800)
+    pg.unroute("**/api")
+    ok("缺電話 0" in pg.inner_text("#listFilter"), "new child appears on the roster immediately, with their phone counted")
+    pg.click("#newBtn"); pg.fill("#mName", "沒電話新增"); pg.click("#mSave")
+    pg.wait_for_function("document.getElementById('kidList').innerText.includes('沒電話新增')", timeout=5000)
+    ok("缺電話 1" in pg.inner_text("#listFilter"), "missing-phone count updates right after adding")
     ok(not errs, f"no page errors: {errs}")
     b.close()

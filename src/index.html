@@ -569,9 +569,9 @@ td.num{font-family:var(--num);font-weight:700}
         const k=state.kids.get(id);if(k){k.name=name;k.group=mGroup}
         const phonesChanged=mLoaded&&JSON.stringify(list)!==mOrig;
         if(phonesChanged){if(k)k.hasContact=list.some(hasPhone);if(state.contacts)state.contacts[id]=list}
-        closeModal();render();
         const src=srcValue(),fields={name,group:mGroup};
         if(src!==mSrcOrig){fields.source=src;if(k)k.source=src}
+        closeModal();render();
         queue(()=>api("updateKid",id,fields));
         if(phonesChanged)queue(()=>api("setContacts",id,list));
       }else{
@@ -580,11 +580,11 @@ td.num{font-family:var(--num);font-weight:700}
         const src=srcValue();
         const r=await api("addKid",name,mGroup,fs,list,src).finally(()=>{state.pending--});
         if(!state.kids.has(r.id))state.kids.set(r.id,{id:r.id,name,group:mGroup,active:true,firstSeen:fs,hasContact:!!r.hasContact,source:src});
-        else{const kk=state.kids.get(r.id);kk.active=true;kk.hasContact=!!r.hasContact}
+        else{const kk=state.kids.get(r.id);kk.active=true;kk.hasContact=!!r.hasContact;if(src)kk.source=src}
         if(state.contacts&&list.length)state.contacts[r.id]=list;
         closeModal();
-        if(!presentIds(state.sessions.get(date+"_"+slot)).includes(r.id)){setLocal(r.id,true);renderRoll();queue(()=>api("setPresent",date,slot,r.id,true))}
-        else render();
+        if(!presentIds(state.sessions.get(date+"_"+slot)).includes(r.id)){setLocal(r.id,true);queue(()=>api("setPresent",date,slot,r.id,true))}
+        render(); // 名單頁、統計頁也一起更新
       }
     }catch(e){console.error(e);$("mErr").textContent="沒有存到，請再試一次。"}
     finally{saving=false}
