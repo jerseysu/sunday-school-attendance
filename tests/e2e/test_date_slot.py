@@ -20,6 +20,12 @@ with sync_playwright() as p:
        "the calendar sits on the right of the date, on the same line")
     ok(box_i["x"] + box_i["width"] <= 390, "the calendar fits inside a phone screen")
     ok(pg.input_value("#dateInput") == "2026-11-15", "the calendar shows the current roll-call date")
+    # the "更新中…" status shown while loading/saving must not push the layout around on a phone
+    pg.evaluate("document.getElementById('sync').textContent='更新中…'")
+    box_i2 = pg.locator("#dateInput").bounding_box()
+    ok(pg.evaluate("document.documentElement.scrollWidth") <= 390 and abs(box_i2["x"] - box_i["x"]) < 1 and abs(box_i2["y"] - box_i["y"]) < 1,
+       "the loading status does not shift the date row or widen the page")
+    pg.evaluate("document.getElementById('sync').textContent=''")
     pg.fill("#dateInput", "2026-11-06"); pg.dispatch_event("#dateInput", "change")
     ok(date() == "11 月 5 日（四）" and slot() == "週四", "picking a Friday snaps back to Thursday")
     ok(pg.input_value("#dateInput") == "2026-11-05", "the calendar follows the snapped date")

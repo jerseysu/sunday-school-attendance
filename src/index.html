@@ -59,7 +59,10 @@ h1{font-size:36px;margin:0;letter-spacing:2px;font-weight:400;line-height:1.15}
 .count .n{font-family:var(--num);font-size:70px;font-weight:700;line-height:1;font-variant-numeric:tabular-nums}
 .count .l{font-size:20px}
 .hint{color:var(--muted);font-size:18px;margin:0 0 12px}
-.syncing{font-size:15px;color:var(--muted);margin-left:auto}
+/* 「更新中…／儲存中…」浮在卡片右上角，不佔位置，載入時版面才不會被擠歪 */
+.when{position:relative}
+.syncing{position:absolute;top:-11px;right:18px;font-size:13px;line-height:20px;color:var(--muted);background:#fff;border:2px solid var(--line);border-radius:999px;padding:0 10px;pointer-events:none;white-space:nowrap}
+.syncing:empty{display:none}
 
 .group-h{font-size:22px;margin:18px 0 10px;color:var(--sky);font-weight:400}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px}
@@ -271,8 +274,8 @@ td.num{font-family:var(--num);font-weight:700}
       <div class="when">
         <div class="dateline">
           <span class="datebig" id="dateText"></span>
-          <span class="syncing" id="sync"></span>
           <input type="date" id="dateInput" aria-label="選擇點名日期">
+          <span class="syncing" id="sync" role="status" aria-live="polite"></span>
         </div>
         <div class="slots" id="slots"></div>
       </div>
