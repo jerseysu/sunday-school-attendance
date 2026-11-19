@@ -47,12 +47,11 @@ h1{font-size:36px;margin:0;letter-spacing:2px;font-weight:400;line-height:1.15}
 
 .bar{display:grid;grid-template-columns:1fr auto;gap:14px;align-items:stretch;margin-bottom:14px}
 .when{background:var(--card);border-radius:26px;padding:14px 18px;display:flex;flex-direction:column;gap:12px;box-shadow:0 5px 0 var(--line)}
-.dateline{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.dateline{display:flex;align-items:center;gap:12px}
 .datebig{font-size:28px}
 .changedate{font-size:16px;border:2px solid var(--line);background:#fff;border-radius:12px;padding:2px 12px;color:var(--muted)}
-/* 日期選單：按「改日期」在旁邊出現；給它固定的大小，手機上才不會變成空白的一小格 */
-#dateInput{font:inherit;font-size:18px;min-width:170px;min-height:40px;box-sizing:border-box;padding:4px 10px;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
-#dateInput[hidden]{display:none}
+/* 日曆一直放在日期右邊，點了就能換日期；固定大小，手機上才不會變成空白的一小格 */
+#dateInput{margin-left:auto;font:inherit;font-size:18px;min-width:150px;min-height:40px;box-sizing:border-box;padding:4px 10px;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);cursor:pointer}
 .slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:520px}
 .slots button{border:3px solid var(--line);background:#fff;border-radius:16px;padding:8px 0;font-size:22px;color:var(--muted)}
 .slots button[aria-pressed="true"]{border-color:var(--sun-d);background:var(--sun);color:var(--ink)}
@@ -237,7 +236,8 @@ td.num{font-family:var(--num);font-weight:700}
   .bar{grid-template-columns:1fr}
   .count{flex-direction:row;gap:10px;min-width:0;padding:10px 18px;justify-content:flex-start}
   .count .n{font-size:44px}
-  .datebig{font-size:22px}
+  .datebig{font-size:20px;white-space:nowrap}
+  #dateInput{min-width:0;width:140px;font-size:16px;padding:4px 6px}
   .slots button{font-size:19px}
   .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
   .kid{font-size:28px;min-height:80px;border-radius:22px}
@@ -271,9 +271,8 @@ td.num{font-family:var(--num);font-weight:700}
       <div class="when">
         <div class="dateline">
           <span class="datebig" id="dateText"></span>
-          <button class="changedate" id="changeDate" type="button" aria-expanded="false" aria-controls="dateInput">改日期</button>
-          <input type="date" id="dateInput" aria-label="選擇點名日期" hidden>
           <span class="syncing" id="sync"></span>
+          <input type="date" id="dateInput" aria-label="選擇點名日期">
         </div>
         <div class="slots" id="slots"></div>
       </div>
@@ -475,7 +474,7 @@ td.num{font-family:var(--num);font-weight:700}
   // ---------- 點名畫面 ----------
   function renderSlots(){
     $("dateText").textContent=pretty(state.date);
-    $("dateInput").value=state.date;
+    $("dateInput").value=state.date;$("dateInput").max=iso(new Date());
     const br=BRAND[state.slot]||BRAND.sun;const lg=$("brandLogo");if(lg.getAttribute("src")!==br.logo){lg.src=br.logo;lg.alt=br.name+" logo"}$("brandName").textContent=br.name;
     $("slots").innerHTML=SLOTS.map(s=>`<button type="button" data-slot="${s.id}" aria-pressed="${s.id===state.slot}">${s.name}</button>`).join("");
   }
@@ -849,12 +848,8 @@ td.num{font-family:var(--num);font-weight:700}
     const end=parse(state.date);end.setDate(end.getDate()+(7-end.getDay())%7);const today=iso(new Date());
     state.date=backTo(iso(end)<today?iso(end):today,s.dow);render()});
   $("roll").addEventListener("click",e=>{const b=e.target.closest(".kid");if(b)toggle(b.dataset.id)});
-  // 改日期：先放好目前的日期再顯示，日期欄位才不會是空白的
-  $("changeDate").addEventListener("click",()=>{
-    const i=$("dateInput"),open=i.hidden;
-    i.value=state.date;i.max=iso(new Date());i.hidden=!open;$("changeDate").setAttribute("aria-expanded",String(open));
-    if(open){i.focus();try{i.showPicker()}catch(_){}}
-  });
+  // 電腦版點日曆任何地方都打開選擇器（不支援的瀏覽器就照原本點小日曆圖示）
+  $("dateInput").addEventListener("click",e=>{try{e.target.showPicker()}catch(_){}});
   $("dateInput").addEventListener("change",e=>{if(e.target.value){const b=snapToSession(e.target.value);state.date=b.date;state.slot=b.slot;e.target.value=b.date;render()}});
   $("newBtn").addEventListener("click",()=>openModal());
   $("mCancel").addEventListener("click",closeModal);
