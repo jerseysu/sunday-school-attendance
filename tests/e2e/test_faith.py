@@ -14,7 +14,7 @@ with sync_playwright() as p:
     pg.click("#mAddParent"); pg.click("[data-ci='1'][data-rel='爸爸']"); pg.click("[data-ci='1'][data-faith='還沒信']")
     pg.click("#mSave")
     wait_until(lambda: len([r for r in rows("家長聯絡") if r[1] == "信仰測試"]) == 2, msg="faith rows saved")
-    ok(dump()["家長聯絡"][0] == ["孩子id", "孩子名字", "稱呼", "電話", "信仰", "更新時間"], "家長聯絡 has the 信仰 column")
+    ok(dump()["家長聯絡"][0] == ["孩子id", "孩子名字", "稱呼", "電話", "信仰", "更新時間", "家長姓名"], "家長聯絡 has the 信仰 and 家長姓名 columns")
     got = sorted((r[2], r[3], r[4]) for r in rows("家長聯絡") if r[1] == "信仰測試")
     ok(got == [("媽媽", "0912-345-678", "慕道中"), ("爸爸", "", "還沒信")], "faith saved per parent, even without a phone")
 

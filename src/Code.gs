@@ -31,43 +31,49 @@ function cleanSource_(v) {
   if (m) { const d = Array.from(m[1].trim()).slice(0, 20).join(''); return d ? '其他：' + d : '其他'; }
   return '';
 }
-function ensureSourceCol_(sh) {
-  if (String(sh.getRange(1, SOURCE_COL_).getValue()) !== '怎麼知道我們') {
-    sh.getRange(1, SOURCE_COL_).setValue('怎麼知道我們');
-  }
+// 孩子名單第 8 欄：參與方式（陪同＝家長陪同參與、獨立＝獨立參與；空白＝還沒決定）
+const MODE_COL_ = 8;
+const MODES_ = ['陪同', '獨立'];
+function cleanMode_(v) { v = String(v == null ? '' : v).trim(); return MODES_.indexOf(v) >= 0 ? v : ''; }
+// 舊的孩子名單沒有第 7、8 欄標題：補上（不移動任何資料）
+function ensureKidCols_(sh) {
+  const h = sh.getRange(1, SOURCE_COL_, 1, 2).getValues()[0];
+  if (String(h[0]) !== '怎麼知道我們') sh.getRange(1, SOURCE_COL_).setValue('怎麼知道我們');
+  if (String(h[1]) !== '參與方式') sh.getRange(1, MODE_COL_).setValue('參與方式');
 }
 const SIGNUP_DAYS_ = 14; // 超過 14 天沒處理的報名就當作過期
-// 「設定」工作表的預設值（教會可以直接在試算表改 B 欄）
-// 教室規則：試算表「設定」的 B 欄留白時就用這份；要改內容直接改試算表即可（記得把「規則版本」加 1）
-const RULES_DEFAULT_ = [
-  'Sunday蒙式共學日｜幼兒獨立參與安全須知',
-  '',
+// 家長報名頁的同意書：試算表「設定」的 B 欄留白時就用這份；要改內容直接改試算表即可（記得把「同意書版本」加 1）
+const CONSENT_DEFAULT_ = [
   '親愛的家長您好：',
   '',
-  '為了讓孩子能在安全、安心的環境中練習獨立，也讓老師與志工能更妥善地照顧每一位孩子，凡經老師評估可以獨立參與教室活動的幼兒，請家長共同配合以下事項：',
+  '歡迎加入 Sunday 蒙式共學日！',
   '',
-  '1. 家長須留在教會現場：孩子獨立上課期間，家長須在主堂參加主日聚會，或於懇墾園等教會指定區域等候，不得自行離開教會場域。',
+  '我們期待透過蒙特梭利的教育理念，在愛與尊重的環境中陪伴孩子成長。為了讓每位孩子都能安心參與，也讓家庭與教會建立良好的合作關係，請家長閱讀並確認以下事項。',
   '',
-  '2. 保持聯繫暢通：請家長留下當日聯絡電話，並保持手機暢通，以便孩子有需要時，老師能即時聯繫。',
+  '一、課程參與',
+  'Sunday 蒙式共學日為教會提供之幼兒共學與教育活動，並非全天候托育服務。幼兒是否適合獨立參與，由教學團隊依孩子的年齡及適應情況評估。',
   '',
-  '3. 特殊情況須事先告知：若有特殊原因需要暫時離開，請務必事先告知主責老師，並確認已有適當的成年照顧者在現場接手。',
+  '二、家長陪同責任',
+  '經老師評估可獨立參與的幼兒，家長仍須留在教會指定範圍（主堂或懇墾園），保持手機暢通，不得自行離開教會場域。若有特殊原因需離開，須事先告知並安排適當的成年照顧者在現場接手。',
   '',
-  '4. 配合接送及交接：課程結束後，請家長準時至教室接回孩子，不讓幼兒自行離開教室或在公共區域等候。',
+  '三、安全照顧與緊急處理',
+  '教會將依活動性質提供合理且必要的安全照顧。若孩子有身體不適、情緒或其他需要家長協助的情況，請家長配合老師通知及到場陪伴。如遇緊急事件，教會得視情況聯繫119、安排就醫並通知家長。',
   '',
-  '5. 共同維護孩子的安全：若家長無法配合上述規範，將暫時調整為家長陪同上課，待確認能配合安全規範後，再恢復孩子獨立參與的安排。',
+  '四、接送與安全管理',
+  '請家長配合課程簽到、簽退及接送規範。幼兒僅交由家長或事先指定的接送人接回。教會得依孩子當日狀況及安全考量，調整獨立參與安排。',
   '',
-  '謝謝每一位家長的理解與配合！',
+  '五、資料及影像使用',
+  '家長同意教會於報名、出席管理、聯繫及安全照顧必要範圍內，蒐集與使用所提供的個人資料。活動照片及影片如需公開宣傳，另行取得家長同意。',
   '',
-  '我們希望孩子在這裡學習獨立、建立自信，也盼望透過家庭與教會的共同合作，為每一位孩子預備一個安心、有愛且安全的成長環境。',
-  '',
-  '孩子的安全，需要我們一起守護。',
-  '',
-  '內湖行道會｜Sunday蒙式共學日'
+  '六、家長確認',
+  '本人已閱讀並理解上述內容，願意配合 Sunday 蒙式共學日相關安全規範，並確認所提供資料正確。本同意書不排除教會或任何人依法應負之責任。'
 ].join('\n');
+// 「設定」工作表的預設值（教會可以直接在試算表改 B 欄；B 欄留白＝用這裡的預設值）
+// 同意書版本從 2 開始：舊版報名頁（教室規則＋免責聲明，版本 1）送出時會被要求重新整理
+// 舊試算表裡的「教室規則」「免責聲明」「規則版本」列已經不再使用，留著不會有影響，也可以直接刪掉
 const CONFIG_DEFAULTS_ = [
-  ['教室規則', RULES_DEFAULT_],
-  ['免責聲明', ''],
-  ['規則版本', '1'],
+  ['同意書', CONSENT_DEFAULT_],
+  ['同意書版本', '2'],
   ['每日報名上限', '30']
 ];
 
@@ -93,7 +99,7 @@ const API_ = {
   getContacts: getContacts, setContacts: setContacts,
   getSignups: getSignups, acceptSignup: acceptSignup, rejectSignup: rejectSignup
 };
-// 不用密碼的公開 API（家長報名頁）：只能讀規則文字、送出報名，讀不到任何名單或電話
+// 不用密碼的公開 API（家長報名頁）：只能讀同意書文字、送出報名，讀不到任何名單或電話
 const PUBLIC_API_ = { getSignupInfo: getSignupInfo, submitSignup: submitSignup };
 const own_ = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
 
@@ -121,9 +127,9 @@ function setup() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const kids = ss.getSheetByName(SHEET_KIDS) || ss.insertSheet(SHEET_KIDS);
   if (kids.getLastRow() === 0) {
-    kids.appendRow(['id', '名字', '年齡層', '顯示', '第一次來', '建立時間', '怎麼知道我們']);
+    kids.appendRow(['id', '名字', '年齡層', '顯示', '第一次來', '建立時間', '怎麼知道我們', '參與方式']);
   }
-  ensureSourceCol_(kids);
+  ensureKidCols_(kids);
   kids.getRange('A:E').setNumberFormat('@');
   kids.setFrozenRows(1);
 
@@ -181,14 +187,16 @@ function setText_(rg, v) { rg.setNumberFormat('@').setValue(v); }
 
 /* ---------- 家長聯絡 ---------- */
 // 一個孩子最多兩列：孩子id、孩子名字（方便人看，程式以 id 為準）、稱呼（爸爸／媽媽／其他）、
-// 電話（存成文字，開頭的 0 才不會不見）、信仰（基督徒／慕道中／還沒信，空白＝不清楚）、更新時間
+// 電話（存成文字，開頭的 0 才不會不見）、信仰（基督徒／慕道中／還沒信，空白＝不清楚）、更新時間、
+// 家長姓名（家長報名時填的；放在最後一欄，舊資料的欄位都不用移動）
 function contactsSheet_() {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(SHEET_CONTACTS);
   if (!sh) {
     sh = ss.insertSheet(SHEET_CONTACTS);
-    sh.appendRow(['孩子id', '孩子名字', '稱呼', '電話', '信仰', '更新時間']);
+    sh.appendRow(['孩子id', '孩子名字', '稱呼', '電話', '信仰', '更新時間', '家長姓名']);
     sh.getRange('A:E').setNumberFormat('@');
+    sh.getRange('G:G').setNumberFormat('@');
     sh.setFrozenRows(1);
   } else if (String(sh.getRange(1, 2).getValue()) !== '孩子名字') {
     // 舊版只有 孩子id、稱呼、電話、更新時間：在第 2 欄插入「孩子名字」並補上名字
@@ -202,6 +210,11 @@ function contactsSheet_() {
     sh.insertColumnAfter(4);
     sh.getRange(1, 5).setValue('信仰');
     sh.getRange('E:E').setNumberFormat('@');
+  }
+  if (String(sh.getRange(1, 7).getValue()) !== '家長姓名') {
+    // 舊版沒有「家長姓名」：加在最後（第 7 欄，更新時間後面）
+    sh.getRange(1, 7).setValue('家長姓名');
+    sh.getRange('G:G').setNumberFormat('@');
   }
   return sh;
 }
@@ -221,29 +234,45 @@ function fillContactNames_(sh) {
 function cleanPhone_(v) {
   return String(v == null ? '' : v).replace(/[^\d+\- ]/g, '').trim().slice(0, 20);
 }
+// 家長姓名：一般文字、20 個字以內（跟孩子名字一樣不能用 = + - @ 開頭）
+function cleanParentName_(v) { return Array.from(cleanName_(v)).slice(0, 20).join(''); }
 function cleanContacts_(list) {
   if (!Array.isArray(list)) return [];
   return list.map(c => ({
     rel: RELS_.indexOf(String(c && c.rel)) >= 0 ? String(c.rel) : '其他',
     phone: cleanPhone_(c && c.phone),
-    faith: cleanFaith_(c && c.faith)
+    faith: cleanFaith_(c && c.faith),
+    name: cleanParentName_(c && c.name)
   })).filter(c => c.phone.replace(/\D/g, '').length >= 6 || c.faith).slice(0, MAX_CONTACTS_);
 }
 function cleanFaith_(v) { v = String(v == null ? '' : v).trim(); return FAITHS_.indexOf(v) >= 0 ? v : ''; }
 const hasPhone_ = c => c.phone.replace(/\D/g, '').length >= 6;
 function readContacts_() {
   if (!SpreadsheetApp.getActiveSpreadsheet().getSheetByName(SHEET_CONTACTS)) return [];
-  return rows_(contactsSheet_()).filter(r => r[0]).map(r => ({ kidId: String(r[0]), rel: String(r[2]), phone: cleanPhone_(r[3]), faith: cleanFaith_(r[4]) }));
+  return rows_(contactsSheet_()).filter(r => r[0]).map(r => ({ kidId: String(r[0]), rel: String(r[2]), phone: cleanPhone_(r[3]), faith: cleanFaith_(r[4]), name: cleanParentName_(r[6]) }));
+}
+// 加一列家長聯絡：前 5 欄和家長姓名存成文字，更新時間保留原本的時間格式
+function appendContact_(sh, kidId, kidName, c) {
+  const row = sh.getLastRow() + 1;
+  sh.getRange(row, 1, 1, 5).setNumberFormat('@');
+  sh.getRange(row, 7).setNumberFormat('@');
+  sh.getRange(row, 1, 1, 7).setValues([[kidId, kidName, c.rel, c.phone, c.faith || '', new Date(), c.name || '']]);
 }
 function writeContacts_(kidId, list) {
   const sh = contactsSheet_();
   const data = rows_(sh);
+  // 保險：沒帶家長姓名、但電話跟原本某一位一樣，就沿用原本的姓名（舊版頁面不會送姓名）
+  const oldNames = {};
+  data.forEach(r => {
+    const d = cleanPhone_(r[3]).replace(/\D/g, ''), n = cleanParentName_(r[6]);
+    if (String(r[0]) === kidId && d && n && !oldNames[d]) oldNames[d] = n;
+  });
   for (let i = data.length - 1; i >= 0; i--) {
     if (String(data[i][0]) === kidId) sh.deleteRow(i + 2);
   }
   if (!list.length) return;
   const name = kidNames_()[kidId] || '';
-  list.forEach(c => appendText_(sh, [kidId, name, c.rel, c.phone, c.faith || '', new Date()]));
+  list.forEach(c => appendContact_(sh, kidId, name, Object.assign({}, c, { name: c.name || oldNames[c.phone.replace(/\D/g, '')] || '' })));
 }
 
 function check_(pin) {
@@ -277,7 +306,8 @@ function getData(pin) {
   const kids = rows_(sheet_(SHEET_KIDS)).filter(r => r[0]).map(r => ({
     id: String(r[0]), name: String(r[1]), group: group_(r[2]),
     active: String(r[3]).toUpperCase() !== 'FALSE', firstSeen: fs_(r[4]),
-    hasContact: !!withPhone[String(r[0])], source: String(r[SOURCE_COL_ - 1] || '')
+    hasContact: !!withPhone[String(r[0])], source: String(r[SOURCE_COL_ - 1] || ''),
+    mode: cleanMode_(r[MODE_COL_ - 1])
   }));
   const records = rows_(sheet_(SHEET_REC)).filter(r => r[0]).map(r => ({
     date: day_(r[0]), slot: String(r[1]), kidId: String(r[2])
@@ -307,7 +337,7 @@ function setPresent_(date, slot, kidId, on) {
 }
 
 /** 新增孩子；同名的孩子已存在就回傳原本的 id（並重新顯示） */
-function addKid(pin, name, group, firstSeen, contacts, source) {
+function addKid(pin, name, group, firstSeen, contacts, source, mode) {
   check_(pin);
   name = String(name || '').trim();
   if (!name) throw new Error('請輸入名字');
@@ -316,17 +346,21 @@ function addKid(pin, name, group, firstSeen, contacts, source) {
     const sh = sheet_(SHEET_KIDS);
     const data = rows_(sh);
     const i = data.findIndex(r => String(r[1]) === name);
-    let id, existed;
+    let id, existed, row;
+    const md = cleanMode_(mode);
     if (i >= 0) {
-      sh.getRange(i + 2, 4).setValue('TRUE');
+      row = i + 2;
+      sh.getRange(row, 4).setValue('TRUE');
       id = String(data[i][0]); existed = true;
     } else {
       id = Utilities.getUuid().slice(0, 8); existed = false;
       appendText_(sh, [id, name, group === '3-6' ? '3-6' : '0-3', 'TRUE', firstSeen || '', new Date()]);
-      ensureSourceCol_(sh);
+      row = sh.getLastRow();
       const src = cleanSource_(source);
-      if (src) setText_(sh.getRange(sh.getLastRow(), SOURCE_COL_), src);
+      ensureKidCols_(sh);
+      if (src) setText_(sh.getRange(row, SOURCE_COL_), src);
     }
+    if (md) { if (existed) ensureKidCols_(sh); setText_(sh.getRange(row, MODE_COL_), md); } // 有選參與方式才寫（同名孩子也會更新）
     if (list.length) writeContacts_(id, list); // 同名孩子已存在時，只有填了電話才覆蓋
     const has = list.some(hasPhone_) || readContacts_().some(c => c.kidId === id && hasPhone_(c));
     return { id: id, existed: existed, hasContact: has };
@@ -337,9 +371,10 @@ function addKid(pin, name, group, firstSeen, contacts, source) {
 function getContacts(pin, kidId) {
   check_(pin);
   const all = readContacts_();
-  if (kidId) return all.filter(c => c.kidId === String(kidId)).map(c => ({ rel: c.rel, phone: c.phone, faith: c.faith }));
+  const pick = c => ({ rel: c.rel, phone: c.phone, faith: c.faith, name: c.name });
+  if (kidId) return all.filter(c => c.kidId === String(kidId)).map(pick);
   const out = {};
-  all.forEach(c => { (out[c.kidId] = out[c.kidId] || []).push({ rel: c.rel, phone: c.phone, faith: c.faith }); });
+  all.forEach(c => { (out[c.kidId] = out[c.kidId] || []).push(pick(c)); });
   return out;
 }
 
@@ -356,7 +391,7 @@ function setContacts(pin, kidId, contacts) {
   });
 }
 
-/** 修改孩子：name / group / active */
+/** 修改孩子：name / group / active / source / mode（'陪同'、'獨立'，'' ＝清掉） */
 function updateKid(pin, id, fields) {
   check_(pin);
   return withLock_(() => {
@@ -376,15 +411,17 @@ function updateKid(pin, id, fields) {
     }
     if (fields.group != null) setText_(sh.getRange(row, 3), fields.group === '3-6' ? '3-6' : '0-3');
     if (fields.active != null) sh.getRange(row, 4).setValue(fields.active ? 'TRUE' : 'FALSE');
-    if (fields.source != null) { ensureSourceCol_(sh); setText_(sh.getRange(row, SOURCE_COL_), cleanSource_(fields.source)); }
+    if (fields.source != null) { ensureKidCols_(sh); setText_(sh.getRange(row, SOURCE_COL_), cleanSource_(fields.source)); }
+    if (fields.mode != null) { ensureKidCols_(sh); setText_(sh.getRange(row, MODE_COL_), cleanMode_(fields.mode)); }
     return true;
   });
 }
 
 /* ---------- 家長自己報名（報名待確認） ---------- */
-// 欄位：報名id、報到碼、孩子名字、年齡層、稱呼、電話、同意規則版本、送出時間、狀態、處理時間、孩子id、怎麼知道我們
+// 欄位：報名id、報到碼、孩子名字、年齡層、稱呼、電話、同意規則版本（＝同意書版本）、送出時間、狀態、處理時間、孩子id、
+// 怎麼知道我們、家長姓名、參與方式（家長希望的：陪同／獨立）
 // 全部存成純文字（時間也是 yyyy-MM-dd HH:mm:ss 文字），試算表才不會自作主張轉格式
-const SIGNUP_HEAD_ = ['報名id', '報到碼', '孩子名字', '年齡層', '稱呼', '電話', '同意規則版本', '送出時間', '狀態', '處理時間', '孩子id', '怎麼知道我們'];
+const SIGNUP_HEAD_ = ['報名id', '報到碼', '孩子名字', '年齡層', '稱呼', '電話', '同意規則版本', '送出時間', '狀態', '處理時間', '孩子id', '怎麼知道我們', '家長姓名', '參與方式'];
 const ST_PENDING_ = '待確認', ST_OK_ = '收下', ST_NO_ = '不收', ST_EXPIRED_ = '過期';
 
 // 第一次用到時建立；兩個人同時建立時，慢的那個改拿已經建好的
@@ -398,20 +435,41 @@ function ensureSheet_(name, init) {
 }
 function signupSheet_() {
   const sh = ensureSheet_(SHEET_SIGNUP, sh => {
-    sh.getRange('A:L').setNumberFormat('@');
+    sh.getRange('A:N').setNumberFormat('@');
     sh.appendRow(SIGNUP_HEAD_);
     sh.setFrozenRows(1);
   });
-  if (String(sh.getRange(1, 12).getValue()) !== '怎麼知道我們') sh.getRange(1, 12).setValue('怎麼知道我們');
+  // 舊的報名表少了後面幾欄的標題：補上（第 12～14 欄）
+  const h = sh.getRange(1, 12, 1, 3).getValues()[0];
+  [12, 13, 14].forEach((col, i) => {
+    if (String(h[i]) !== SIGNUP_HEAD_[col - 1]) setText_(sh.getRange(1, col), SIGNUP_HEAD_[col - 1]);
+  });
   return sh;
 }
 function configSheet_() {
-  return ensureSheet_(SHEET_CONFIG, sh => {
+  let created = false;
+  const sh = ensureSheet_(SHEET_CONFIG, sh => {
+    created = true;
     sh.getRange('A:B').setNumberFormat('@');
     sh.appendRow(['項目', '內容']);
     CONFIG_DEFAULTS_.forEach(r => sh.appendRow(r));
     sh.setFrozenRows(1);
   });
+  if (created) return sh;
+  // 舊的設定表少了新的項目（例如「同意書」）：補上項目名稱、B 欄留白，留白就會用程式裡的預設值，
+  // 教會想改內容時再填 B 欄即可。只有真的缺項目時才拿鎖，平常只多讀一次 A 欄
+  const missing = () => {
+    const have = {};
+    rows_(sh).forEach(r => { have[String(r[0]).trim()] = true; });
+    return CONFIG_DEFAULTS_.filter(r => !have[r[0]]);
+  };
+  if (missing().length) {
+    withLock_(() => missing().forEach(r => {
+      const row = sh.getLastRow() + 1;
+      sh.getRange(row, 1, 1, 2).setNumberFormat('@').setValues([[r[0], '']]);
+    }));
+  }
+  return sh;
 }
 function config_() {
   const out = {};
@@ -445,10 +503,10 @@ function cleanName_(v) {
     .trim().replace(/^[=+\-@\s]+/, '');
 }
 
-/** 公開：報名頁要顯示的教室規則、免責聲明 */
+/** 公開：報名頁要顯示的同意書和它的版本 */
 function getSignupInfo() {
   const c = config_();
-  return { rules: String(c['教室規則'] || ''), waiver: String(c['免責聲明'] || ''), version: String(c['規則版本'] || '1') };
+  return { consent: String(c['同意書'] || ''), version: String(c['同意書版本'] || '2') };
 }
 
 /** 公開：家長送出報名。只回報到碼，不回任何其他資料 */
@@ -463,11 +521,16 @@ function submitSignup(form) {
   if (group !== '0-3' && group !== '3-6') throw new Error('請選孩子的年齡');
   const rel = String(form.rel);
   if (RELS_.indexOf(rel) < 0) throw new Error('請選您是孩子的誰');
+  const parentName = cleanName_(form.parentName);
+  if (!parentName) throw new Error('請填家長姓名');
+  if (Array.from(parentName).length > 20) throw new Error('家長姓名太長了，20 個字以內就好');
   const phone = cleanPhone_(form.phone);
   if (phone.replace(/\D/g, '').length < 6) throw new Error('請填您的手機號碼');
-  if (form.agreeRules !== true || form.agreeWaiver !== true) throw new Error('請先閱讀並同意教室規則和免責聲明');
+  const mode = cleanMode_(form.mode);
+  if (!mode) throw new Error('請選幼兒參與方式');
+  if (form.agreeConsent !== true) throw new Error('請先閱讀並勾選同意書');
   const c = config_();
-  const version = String(c['規則版本'] || '1');
+  const version = String(c['同意書版本'] || '2');
   if (String(form.version == null ? '' : form.version) !== version) throw new Error('規則剛剛更新了，請重新整理頁面再看一次');
   const cap = Math.max(0, parseInt(c['每日報名上限'], 10) || 30);
   return withLock_(() => {
@@ -483,7 +546,8 @@ function submitSignup(form) {
     for (let i = 0; i < 100 && used[code]; i++) code = fakeCode();
     if (used[code]) throw new Error('請稍後再試一次');
     writeTextRow_(sh, sh.getLastRow() + 1, [
-      Utilities.getUuid().slice(0, 8), code, name, group, rel, phone, version, now_(), ST_PENDING_, '', '', cleanSource_(form.source)
+      Utilities.getUuid().slice(0, 8), code, name, group, rel, phone, version, now_(), ST_PENDING_, '', '', cleanSource_(form.source),
+      parentName, mode
     ]);
     return { code: code };
   });
@@ -509,7 +573,8 @@ function getSignups(pin) {
     out.push({
       id: String(r[0]), code: String(r[1]), name: name, group: group_(r[3]), rel: String(r[4]),
       phone: cleanPhone_(r[5]), version: String(r[6]), time: String(r[7]),
-      sameNameKidId: kidByName[name.trim()] || null, source: String(r[11] || '')
+      sameNameKidId: kidByName[name.trim()] || null, source: String(r[11] || ''),
+      parentName: cleanParentName_(r[12]), mode: cleanMode_(r[13])
     });
   });
   if (expired.length) {
@@ -531,8 +596,9 @@ function findSignup_(sh, id) {
 }
 
 /**
- * 老師：電話確認後收下。opts = {date, slot, mergeKidId?, phone?}
+ * 老師：電話確認後收下。opts = {date, slot, mergeKidId?, phone?, mode?}
  * mergeKidId：字串＝跟名單裡那個孩子是同一個（只補電話）；null＝不同孩子（另外新增）
+ * mode：老師決定的參與方式（'陪同'／'獨立'）；沒給就用家長報名時選的
  * 同一筆再按一次會回傳同一個 kidId，不會重複新增
  */
 function acceptSignup(pin, id, opts) {
@@ -552,6 +618,9 @@ function acceptSignup(pin, id, opts) {
     const rel = RELS_.indexOf(String(s.r[4])) >= 0 ? String(s.r[4]) : '其他';
     const phone = cleanPhone_(opts.phone != null && String(opts.phone).trim() !== '' ? opts.phone : s.r[5]);
     if (phone.replace(/\D/g, '').length < 6) throw new Error('電話號碼太短了');
+    const parentName = cleanParentName_(s.r[12]);
+    const mode = opts.mode != null && String(opts.mode).trim() !== '' ? cleanMode_(opts.mode) : cleanMode_(s.r[13]);
+    if (opts.mode != null && String(opts.mode).trim() !== '' && !mode) throw new Error('參與方式不對');
     const kidsSh = sheet_(SHEET_KIDS);
     const kids = rows_(kidsSh);
     let name = String(s.r[2]).trim();
@@ -562,20 +631,25 @@ function acceptSignup(pin, id, opts) {
       if (ki < 0) throw new Error('找不到名單裡的那個孩子');
       kidsSh.getRange(ki + 2, 4).setValue('TRUE');
       const src = cleanSource_(s.r[11]);
-      if (src && !String(kids[ki][SOURCE_COL_ - 1] || '')) { ensureSourceCol_(kidsSh); setText_(kidsSh.getRange(ki + 2, SOURCE_COL_), src); }
+      if (src || mode) ensureKidCols_(kidsSh);
+      if (src && !String(kids[ki][SOURCE_COL_ - 1] || '')) setText_(kidsSh.getRange(ki + 2, SOURCE_COL_), src);
+      if (mode) setText_(kidsSh.getRange(ki + 2, MODE_COL_), mode);
       name = String(kids[ki][1]);
       merged = true;
-      // 只補電話：同一支號碼已經有了就不動；兩位都滿了就換掉同稱呼（或第二位）的那支
-      const list = readContacts_().filter(c => c.kidId === kidId).map(c => ({ rel: c.rel, phone: c.phone, faith: c.faith }));
+      // 只補電話：同一支號碼已經有了就不動（只補上還沒有的家長姓名）；兩位都滿了就換掉同稱呼（或第二位）的那支
+      const list = readContacts_().filter(c => c.kidId === kidId).map(c => ({ rel: c.rel, phone: c.phone, faith: c.faith, name: c.name }));
       const d = phone.replace(/\D/g, '');
-      if (!list.some(c => c.phone.replace(/\D/g, '') === d)) {
+      const same = list.find(c => c.phone.replace(/\D/g, '') === d);
+      if (same) {
+        if (parentName && !same.name) { same.name = parentName; writeContacts_(kidId, list); }
+      } else {
         const blank = list.findIndex(c => c.rel === rel && !hasPhone_(c)); // 同稱呼但還沒電話（例如只填了信仰）：補上電話
-        if (blank >= 0) list[blank].phone = phone;
-        else if (list.length < MAX_CONTACTS_) list.push({ rel: rel, phone: phone, faith: '' });
+        if (blank >= 0) { list[blank].phone = phone; list[blank].name = parentName || list[blank].name; }
+        else if (list.length < MAX_CONTACTS_) list.push({ rel: rel, phone: phone, faith: '', name: parentName });
         else {
           const j = list.findIndex(c => c.rel === rel);
           const k = j >= 0 ? j : list.length - 1;
-          list[k] = { rel: rel, phone: phone, faith: list[k].rel === rel ? list[k].faith : '' };
+          list[k] = { rel: rel, phone: phone, faith: list[k].rel === rel ? list[k].faith : '', name: parentName };
         }
         writeContacts_(kidId, list);
       }
@@ -591,18 +665,19 @@ function acceptSignup(pin, id, opts) {
       }
       kidId = Utilities.getUuid().slice(0, 8);
       appendText_(kidsSh, [kidId, name, group_(s.r[3]), 'TRUE', date + '_' + slot, new Date()]);
-      ensureSourceCol_(kidsSh);
+      ensureKidCols_(kidsSh);
       const src = cleanSource_(s.r[11]);
       if (src) setText_(kidsSh.getRange(kidsSh.getLastRow(), SOURCE_COL_), src);
+      if (mode) setText_(kidsSh.getRange(kidsSh.getLastRow(), MODE_COL_), mode);
       // 全新的孩子：沒有舊電話、沒有舊點名，直接加一列就好（不用整張表掃一遍）
-      appendText_(contactsSheet_(), [kidId, name, rel, phone, '', new Date()]);
+      appendContact_(contactsSheet_(), kidId, name, { rel: rel, phone: phone, faith: '', name: parentName });
       appendText_(sheet_(SHEET_REC), [date, slot, kidId, name, new Date()]);
     }
     if (merged) setPresent_(date, slot, kidId, true);
     // 報名那一列：電話、狀態、處理時間、孩子id 一次寫完（第 6～11 欄）
     sh.getRange(s.row, 6, 1, 6).setNumberFormat('@')
       .setValues([[phone, String(s.r[6]), String(s.r[7]), ST_OK_, now_(), kidId]]);
-    return { kidId: kidId, name: name, merged: merged, group: group_(s.r[3]), firstSeen: merged ? '' : date + '_' + slot };
+    return { kidId: kidId, name: name, merged: merged, group: group_(s.r[3]), firstSeen: merged ? '' : date + '_' + slot, mode: mode };
   });
 }
 

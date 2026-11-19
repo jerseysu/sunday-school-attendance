@@ -15,18 +15,30 @@ def mk(b):
     pg.on("console", lambda m: m.type=="error" and "tel:" not in m.text and "Failed to load resource" not in m.text and errs.append("console: "+m.text))
     return pg
 
-# config: rules text set in 設定 sheet, waiver left empty
-ev('const sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName("設定");sh.getRange(2,2).setValue("1. 請準時接送\\n2. <b>不要</b>帶零食"); return true')
+def setcfg(key, value):
+    ev('const sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName("設定");const k=%s;'
+       'const n=sh.getLastRow();for(let i=2;i<=n;i++){if(sh.getRange(i,1).getValue()===k){sh.getRange(i,2).setValue(%s);return true}}'
+       'throw new Error("no key "+k)' % (json.dumps(key), json.dumps(value)))
+# config: consent text set in 設定 sheet
+ok([r[0] for r in dump()["設定"]] == ["項目", "同意書", "同意書版本", "每日報名上限"], "new 設定 sheet has the consent keys")
+setcfg("同意書", "1. 請準時接送\n2. <b>不要</b>帶零食")
 # backend-only checks
 ok(call("getSignups")["error"]=="BAD_PIN","getSignups without PIN is refused")
 ok(call("getData")["error"]=="BAD_PIN","getData without PIN is refused")
 ok(call("constructor")["error"]=="UNKNOWN_FN","prototype names are not callable")
-base={"name":"測試","group":"0-3","rel":"媽媽","phone":"0912345678","agreeRules":True,"agreeWaiver":True,"version":"1","website":""}
-ok("同意" in call("submitSignup",{**base,"agreeWaiver":False})["error"],"submit without waiver agreement rejected")
+base={"name":"測試","group":"0-3","rel":"媽媽","parentName":"王小美","phone":"0912345678","mode":"陪同","agreeConsent":True,"version":"2","website":""}
+ok(call("getSignupInfo")["data"]=={"consent":"1. 請準時接送\n2. <b>不要</b>帶零食","version":"2"},"getSignupInfo returns consent text and version")
+ok("同意" in call("submitSignup",{**base,"agreeConsent":False})["error"],"submit without consent rejected")
+old={k:v for k,v in base.items() if k not in ("agreeConsent","version","parentName","mode")}
+ok(call("submitSignup",{**old,"parentName":"王小美","mode":"陪同","agreeRules":True,"agreeWaiver":True,"version":"1"})["ok"] is False,"old two-checkbox payload rejected")
+ok("家長姓名" in call("submitSignup",{**base,"parentName":"  "})["error"],"missing parent name rejected")
+ok(call("submitSignup",{**base,"parentName":"王"*21})["ok"] is False,"parent name length limit")
+ok("參與方式" in call("submitSignup",{**base,"mode":""})["error"],"missing participation mode rejected")
+ok(call("submitSignup",{**base,"mode":"全天"})["ok"] is False,"participation mode whitelist enforced")
 ok(call("submitSignup",{**base,"rel":"阿姨"})["ok"] is False,"rel whitelist enforced")
 ok(call("submitSignup",{**base,"phone":"12-34"})["ok"] is False,"phone needs 6 digits")
 ok(call("submitSignup",{**base,"name":"x"*21})["ok"] is False,"name length limit")
-ok("更新" in call("submitSignup",{**base,"version":"0"})["error"],"stale rules version rejected")
+ok("更新" in call("submitSignup",{**base,"version":"1"})["error"],"stale consent version rejected")
 ok(len(dump()["報名待確認"])==1,"no rows written by invalid submissions")
 
 # a kid named 小明 already exists (for same-name merge)
@@ -36,43 +48,46 @@ with sync_playwright() as p:
     b=p.chromium.launch()
     pg=mk(b)
     pg.goto(B+"/signup.html")
-    pg.wait_for_function("document.getElementById('rulesText').textContent.includes('準時')")
-    pg.click("#rulesBox summary")
-    ok("<b>不要</b>" in pg.text_content("#rulesText"),"rules text from 設定 shown as plain text (escaped)")
-    ok("還沒有填寫免責聲明" in pg.text_content("#waiverText"),"placeholder for empty waiver")
+    pg.wait_for_function("document.getElementById('consentText').textContent.includes('準時')")
+    ok(pg.locator("details").count()==1 and pg.locator("[role=checkbox]").count()==1,"one consent document and one checkbox")
+    pg.click("#consentBox summary")
+    ok("<b>不要</b>" in pg.text_content("#consentText"),"consent text from 設定 shown as plain text (escaped)")
     pg.screenshot(path=OUT+"/signup-form.png",full_page=True)
     pg.fill("#name","彤彤"); pg.click("#group button[data-v='3-6']"); pg.click("#rel button[data-v='媽媽']"); pg.fill("#phone","0912-345-678")
-    ok(pg.is_disabled("#submit"),"submit disabled before agreements")
-    pg.click("#agreeRules")
-    ok(pg.get_attribute("#agreeRules","aria-checked")=="true" and pg.is_disabled("#submit"),"one agreement still disabled")
-    pg.click("#agreeWaiver")
-    ok(not pg.is_disabled("#submit"),"submit enabled when both agreed")
+    pg.fill("#parentName","王小美"); pg.click("#mode [data-v='獨立']")
+    ok(pg.get_attribute("#mode [data-v='獨立']","aria-checked")=="true" and pg.get_attribute("#mode [data-v='陪同']","aria-checked")=="false","mode radio cards are exclusive")
+    ok(pg.is_disabled("#submit"),"submit disabled before consent")
+    pg.click("#agreeConsent")
+    ok(pg.get_attribute("#agreeConsent","aria-checked")=="true" and not pg.is_disabled("#submit"),"submit enabled when everything is filled and consent checked")
     pg.click("#submit"); pg.wait_for_selector("#done:not([hidden])")
     code1=pg.text_content("#doneCode")
     ok(len(code1)==4 and code1.isdigit(),"done screen shows 4-digit code "+code1)
-    ok(pg.text_content("#doneWho")=="彤彤・媽媽","done shows name・relation")
+    ok(pg.text_content("#doneWho")=="彤彤・媽媽 王小美","done shows name・relation and parent name")
     ok("還不會出現在點名名單" in pg.inner_text("#done"),"done shows pending note")
     pg.screenshot(path=OUT+"/signup-done.png",full_page=True)
     pg.click("#again")
-    ok(pg.input_value("#name")=="" and pg.input_value("#phone")=="0912-345-678" and pg.get_attribute("#rel button[data-v='媽媽']","aria-pressed")=="true","again keeps phone/relation, clears name")
-    ok(pg.is_disabled("#submit") and pg.get_attribute("#group button[data-v='3-6']","aria-pressed")=="false","again resets agreements and age")
-    # missing age → client error
-    pg.fill("#name","小明"); pg.click("#agreeRules"); pg.click("#agreeWaiver"); pg.click("#submit")
-    ok("年齡" in pg.text_content("#err"),"client validation message for missing age")
+    ok(pg.input_value("#name")=="" and pg.input_value("#phone")=="0912-345-678" and pg.input_value("#parentName")=="王小美" and pg.get_attribute("#rel button[data-v='媽媽']","aria-pressed")=="true","again keeps phone/relation/parent name, clears child name")
+    ok(pg.is_disabled("#submit") and pg.get_attribute("#group button[data-v='3-6']","aria-pressed")=="false" and pg.get_attribute("#agreeConsent","aria-checked")=="false","again resets consent and age")
+    ok(pg.locator("#mode [aria-checked=true]").count()==0,"again resets the participation mode")
+    # missing age → cannot submit
+    pg.fill("#name","小明"); pg.click("#mode [data-v='陪同']"); pg.click("#agreeConsent")
+    ok(pg.is_disabled("#submit"),"submit stays disabled while age is missing")
     pg.click("#group button[data-v='3-6']"); pg.click("#submit"); pg.wait_for_selector("#done:not([hidden])")
     code2=pg.text_content("#doneCode")
     # 3rd: to be rejected
     pg.click("#again"); pg.fill("#name","阿哲"); pg.click("#group button[data-v='0-3']"); pg.click("#rel button[data-v='爸爸']"); pg.fill("#phone","0955111222")
-    pg.click("#agreeRules"); pg.click("#agreeWaiver"); pg.click("#submit"); pg.wait_for_selector("#done:not([hidden])")
+    pg.fill("#parentName","陳大文"); pg.click("#mode [data-v='陪同']"); pg.click("#agreeConsent"); pg.click("#submit"); pg.wait_for_selector("#done:not([hidden])")
     n_before=len(dump()["報名待確認"])
     # honeypot
     pg.click("#again"); pg.fill("#name","Bot"); pg.click("#group button[data-v='0-3']"); pg.fill("#website","http://spam.example")
-    pg.click("#agreeRules"); pg.click("#agreeWaiver"); pg.click("#submit"); pg.wait_for_selector("#done:not([hidden])")
+    pg.click("#mode [data-v='陪同']"); pg.click("#agreeConsent"); pg.click("#submit"); pg.wait_for_selector("#done:not([hidden])")
     ok(len(dump()["報名待確認"])==n_before,"honeypot submission shows success but stores nothing")
     rows=dump()["報名待確認"][1:]
     ok([r[2] for r in rows]==["彤彤","小明","阿哲"] and all(r[8]=="待確認" for r in rows),"3 pending rows written")
     ok(len({r[1] for r in rows})==3,"codes unique among pending")
-    ok(rows[0][3]=="3-6" and rows[0][4]=="媽媽" and rows[0][5]=="0912-345-678" and rows[0][6]=="1","row fields stored")
+    ok(rows[0][3]=="3-6" and rows[0][4]=="媽媽" and rows[0][5]=="0912-345-678" and rows[0][6]=="2","row fields stored")
+    ok(dump()["報名待確認"][0][12:]==["家長姓名","參與方式"],"報名待確認 has 家長姓名 and 參與方式 columns")
+    ok([r[12:14] for r in rows]==[["王小美","獨立"],["王小美","陪同"],["陳大文","陪同"]],"parent name and preferred mode stored")
 
     # ---------- teacher ----------
     t=mk(b)
@@ -87,7 +102,11 @@ with sync_playwright() as p:
     ok(cards.count()==3,"3 cards listed")
     c1=cards.nth(0)
     ok(code1 in c1.inner_text() and "0912-345-678" in c1.inner_text() and "3–6 歲" in c1.inner_text(),"card shows code, full phone, age")
-    ok("已同意教室規則・免責聲明（" in c1.inner_text(),"card shows agreement with time")
+    ok("已同意幼兒參與暨安全照顧同意書（第 2 版・" in c1.inner_text(),"card shows consent with version and time")
+    ok("媽媽 王小美" in c1.inner_text(),"card shows relation with parent name")
+    ok("家長希望：獨立參與" in c1.inner_text() and c1.locator("[data-smode='獨立']").get_attribute("aria-pressed")=="true","mode box preselects the parent's choice")
+    c1.locator("[data-smode='陪同']").click()
+    ok(c1.locator("[data-smode='陪同']").get_attribute("aria-pressed")=="true","teacher can switch the mode before accepting")
     t.screenshot(path=OUT+"/teacher-list.png",full_page=True)
     ok(c1.locator("[data-sok]").get_attribute("aria-disabled")=="true","accept disabled before call")
     c1.locator("[data-sok]").click(force=True); t.wait_for_timeout(300)
@@ -102,11 +121,13 @@ with sync_playwright() as p:
     ok("已加入名單，今天也點好名了" in t.inner_text("#sList .scard.ok"),"accepted card message")
     d=dump(); kid=[r for r in d["孩子名單"] if r[1]=="彤彤"]
     ok(len(kid)==1 and kid[0][2]=="3-6","kid created with age group")
+    ok(d["孩子名單"][0][7]=="參與方式" and kid[0][7]=="陪同","kid gets the teacher-chosen mode (參與方式 column)")
     kid_id=kid[0][0]
     today=t.evaluate("(()=>{const d=new Date();while(![0,3,4,6].includes(d.getDay()))d.setDate(d.getDate()-1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')})()")
     slot=t.evaluate("document.querySelector('#slots [aria-pressed=true]').dataset.slot")
     ok(kid[0][4]==today+"_"+slot,"firstSeen = date_slot")
-    ok([kid_id,"彤彤","媽媽","0912-000-999"]==[x for x in [r for r in d["家長聯絡"] if r[0]==kid_id][0][:4]],"contact written with child name and corrected phone")
+    crow=[r for r in d["家長聯絡"] if r[0]==kid_id][0]
+    ok([kid_id,"彤彤","媽媽","0912-000-999"]==crow[:4] and crow[6]=="王小美","contact written with child name, corrected phone and parent name")
     ok(any(r[2]==kid_id and r[0]==today and r[1]==slot for r in d["點名紀錄"]),"attendance row created")
     srow=[r for r in d["報名待確認"] if r[2]=="彤彤"][0]
     ok(srow[8]=="收下" and srow[10]==kid_id and srow[9],"signup marked 收下 with kid id")
@@ -119,7 +140,8 @@ with sync_playwright() as p:
     c2.locator("[data-sok]").click(); t.wait_for_timeout(600)
     d=dump()
     ok(len([r for r in d["孩子名單"] if r[1].startswith("小明")])==1,"merge did not create a new kid")
-    ok(sorted(r[3] for r in d["家長聯絡"] if r[0]==xm)==["0912-345-678","0933000111"],"merge added phone to existing kid")
+    ok(sorted((r[3],r[6] if len(r)>6 else "") for r in d["家長聯絡"] if r[0]==xm)==[("0912-345-678","王小美"),("0933000111","")],"merge added phone and parent name to existing kid")
+    ok([r for r in d["孩子名單"] if r[0]==xm][0][7]=="陪同","merge sets the mode on the existing kid")
     ok(any(r[2]==xm and r[0]==today for r in d["點名紀錄"]),"merged kid marked present")
     # reject 阿哲
     c3=t.locator("#sList [data-sid]").filter(has_text="阿哲")
@@ -152,7 +174,7 @@ with sync_playwright() as p:
     ok(call("getSignups",pin="12345")["data"]==[] and call("getData",pin="12345")["data"]["pendingSignups"]==0,"expired signup excluded")
     ok(dump()["報名待確認"][-1][8]=="過期","expired row marked 過期")
     # daily cap
-    ev('const sh=SpreadsheetApp.getActiveSpreadsheet().getSheetByName("設定");sh.getRange(5,2).setValue("6");return true')
+    setcfg("每日報名上限","6")
     res=[call("submitSignup",{**base,"name":"cap%d"%i}) for i in range(3)]
     ok(any(not x["ok"] and "太多" in x["error"] for x in res),"daily cap enforced")
     public=json.dumps(call("submitSignup",{**base,"name":"資料"}))

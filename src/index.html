@@ -94,6 +94,9 @@ td.num{font-family:var(--num);font-weight:700}
 .pill{display:inline-block;padding:2px 12px;border-radius:999px;font-size:15px}
 .pill.warn{background:var(--orange);color:var(--ink)}
 .pill.new{background:var(--mint-soft);color:#1E7A57}
+.pill.mode{font-size:14px;padding:1px 10px}
+.pill.mode[data-m="獨立"]{background:#DCEBFA;color:#1F5F8E}
+.pill.mode[data-m="陪同"]{background:#FFE9D4;color:#8A4A12}
 .tablewrap{overflow-x:auto}
 
 .row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:10px 0;border-bottom:2px solid var(--bg)}
@@ -112,6 +115,7 @@ td.num{font-family:var(--num);font-weight:700}
 .choice{display:flex;gap:10px}
 .choice button{flex:1;border:3px solid var(--line);background:#fff;border-radius:18px;padding:10px;font-size:22px;color:var(--muted)}
 .choice button[aria-pressed="true"]{border-color:var(--sun-d);background:var(--sun);color:var(--ink)}
+.choice[hidden]{display:none}
 .actions{display:flex;gap:10px;justify-content:flex-end}
 .actions .btn{font-size:21px;padding:10px 22px}
 .err{color:var(--warn);font-size:17px;min-height:1em}
@@ -194,6 +198,12 @@ td.num{font-family:var(--num);font-weight:700}
 .sphone .pnum{font-family:var(--num);font-size:24px;letter-spacing:1px;word-break:break-all}
 .slink{border:0;background:none;color:var(--sky);text-decoration:underline;font-size:16px;min-height:44px;padding:0 6px;margin-left:auto}
 .sagree{margin:0;color:#1E7A57;font-size:16px}
+.smode{background:#F4F9FD;border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:8px}
+.smode p{margin:0;font-size:17px}
+.smode .choice button{font-size:18px;padding:6px;min-height:52px}
+.smode .hint{font-size:15px;margin:0}
+.cname{font-size:16px;color:var(--ink);background:var(--bg);border-radius:10px;padding:2px 10px;align-self:flex-start}
+.phone .pname{font-size:14px;color:var(--ink);word-break:break-all}
 .ssame{background:var(--warn-soft);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:8px}
 .ssame p{margin:0;color:var(--warn);font-size:17px}
 .ssame .choice button{font-size:17px;padding:6px;min-height:52px}
@@ -331,6 +341,11 @@ td.num{font-family:var(--num);font-weight:700}
     <div class="choice" id="mGroup">
       <button type="button" data-g="0-3" aria-pressed="true">0–3 歲</button>
       <button type="button" data-g="3-6" aria-pressed="false">3–6 歲</button>
+    </div>
+    <label id="mModeL">參與方式 <span class="opt">可以不選・再按一次取消</span></label>
+    <div class="choice" id="mMode" role="group" aria-labelledby="mModeL">
+      <button type="button" data-m="陪同" aria-pressed="false">家長陪同</button>
+      <button type="button" data-m="獨立" aria-pressed="false">獨立參與</button>
     </div>
     <div class="choice" id="mNewWrap">
       <button type="button" id="mNew" aria-pressed="true">今天第一次來（新朋友）</button>
@@ -495,7 +510,10 @@ td.num{font-family:var(--num);font-weight:700}
   }
 
   // ---------- 新增 / 修改孩子 ----------
-  let mGroup="0-3",mNew=true;
+  let mGroup="0-3",mNew=true,mMode="",mModeOrig="";
+  // 參與方式：陪同＝家長陪同、獨立＝獨立參與（空白＝還沒決定）
+  const MODE_TXT={"陪同":"家長陪同","獨立":"獨立參與"};
+  const modePill=m=>MODE_TXT[m]?`<span class="pill mode" data-m="${esc(m)}">${MODE_TXT[m]}</span>`:"";
   // 家長電話：mContacts 是表單裡的資料；mLoaded=false 時（修改模式還沒讀到）不會送出，避免把舊電話洗掉
   const RELS=["爸爸","媽媽","其他"],MAXC=2;
   let mContacts=[],mOrig="[]",mLoaded=true;
@@ -504,12 +522,15 @@ td.num{font-family:var(--num);font-weight:700}
   const FAITHS=[["基督徒","基督徒"],["慕道中","慕道中"],["還沒信","還沒信"],["","不清楚"]];
   const isCare=f=>f==="慕道中"||f==="還沒信";
   const hasPhone=c=>digits(c.phone).length>=6;
-  const validContacts=()=>mContacts.map(c=>({rel:c.rel,phone:c.phone.trim(),faith:c.faith||""})).filter(c=>hasPhone(c)||c.faith);
+  // 家長姓名（家長報名時填的）沒有輸入框，但要原樣帶回去，setContacts 整組取代時才不會不見
+  const validContacts=()=>mContacts.map(c=>({rel:c.rel,phone:c.phone.trim(),faith:c.faith||"",name:c.name||""})).filter(c=>hasPhone(c)||c.faith);
+  const blankContact=rel=>({rel,phone:"",faith:"",name:""});
   function drawContacts(msg){
     const box=$("mContacts");
     if(msg){box.innerHTML=`<p class="hint" style="margin:0">${esc(msg)}</p>`;$("mAddParent").hidden=true;return}
     box.innerHTML=mContacts.map((c,i)=>`<div class="centry">
       <div class="choice" role="group" aria-label="第 ${i+1} 位家長的稱呼">${RELS.map(r=>`<button type="button" data-ci="${i}" data-rel="${r}" aria-pressed="${c.rel===r}">${r}</button>`).join("")}</div>
+      ${c.name?`<span class="cname">家長姓名：${esc(c.name)}</span>`:""}
       <label for="mPhone${i}">手機號碼</label>
       <div class="cprow"><input type="tel" inputmode="tel" id="mPhone${i}" data-ci="${i}" maxlength="20" autocomplete="off" placeholder="0912-345-678" value="${esc(c.phone)}">
       <button class="btn danger" type="button" data-cdel="${i}" aria-label="刪除第 ${i+1} 位家長">刪除</button></div>
@@ -525,19 +546,20 @@ td.num{font-family:var(--num);font-weight:700}
     mGroup=k?(k.group||"0-3"):"0-3";mNew=!k;
     $("mNewWrap").hidden=!!k;
     $("mSave").textContent=k?"儲存":"加入並點名";
+    mMode=k?(k.mode||""):"";mModeOrig=mMode;
     syncChoice();setSrc(k?k.source:"");$("mErr").textContent="";
     $("modal").classList.add("show");setTimeout(()=>$("mName").focus(),50);
-    if(!k){mContacts=[{rel:"媽媽",phone:"",faith:""}];mOrig="[]";mLoaded=true;drawContacts();return}
+    if(!k){mContacts=[blankContact("媽媽")];mOrig="[]";mLoaded=true;drawContacts();return}
     const cached=state.contacts&&state.contacts[editId];
-    if(cached||(state.contacts&&!k.hasContact)){mContacts=(cached||[]).map(c=>({faith:"",...c}));mLoaded=true}
+    if(cached||(state.contacts&&!k.hasContact)){mContacts=(cached||[]).map(c=>({faith:"",name:"",...c}));mLoaded=true}
     else{
       mLoaded=false;drawContacts("讀取家長電話中…");
-      try{mContacts=(await api("getContacts",editId)).map(c=>({faith:"",...c}));mLoaded=true}
+      try{mContacts=(await api("getContacts",editId)).map(c=>({faith:"",name:"",...c}));mLoaded=true}
       catch(e){console.error(e);if(state.editId===editId)drawContacts("家長電話讀不到，這次先不改電話。");return}
       if(state.editId!==editId||!$("modal").classList.contains("show"))return;
     }
     mOrig=JSON.stringify(validContacts());
-    if(!mContacts.length)mContacts=[{rel:"媽媽",phone:"",faith:""}];
+    if(!mContacts.length)mContacts=[blankContact("媽媽")];
     drawContacts();
   }
   function closeModal(){$("modal").classList.remove("show")}
@@ -554,6 +576,7 @@ td.num{font-family:var(--num);font-weight:700}
   function setSrc(v){v=String(v||"");mSrc=srcBase(v);$("mSrcOther").value=v.startsWith("其他：")?v.slice(3):"";mSrcOrig=v;drawSrc()}
   function syncChoice(){
     document.querySelectorAll("#mGroup button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.g===mGroup)));
+    document.querySelectorAll("#mMode button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.m===mMode)));
     $("mNew").setAttribute("aria-pressed",String(mNew));
   }
   let saving=false;
@@ -571,16 +594,17 @@ td.num{font-family:var(--num);font-weight:700}
         if(phonesChanged){if(k)k.hasContact=list.some(hasPhone);if(state.contacts)state.contacts[id]=list}
         const src=srcValue(),fields={name,group:mGroup};
         if(src!==mSrcOrig){fields.source=src;if(k)k.source=src}
+        if(mMode!==mModeOrig){fields.mode=mMode;if(k)k.mode=mMode}
         closeModal();render();
         queue(()=>api("updateKid",id,fields));
         if(phonesChanged)queue(()=>api("setContacts",id,list));
       }else{
         const date=state.date,slot=state.slot,fs=mNew?key():"";
         state.pending++;
-        const src=srcValue();
-        const r=await api("addKid",name,mGroup,fs,list,src).finally(()=>{state.pending--});
-        if(!state.kids.has(r.id))state.kids.set(r.id,{id:r.id,name,group:mGroup,active:true,firstSeen:fs,hasContact:!!r.hasContact,source:src});
-        else{const kk=state.kids.get(r.id);kk.active=true;kk.hasContact=!!r.hasContact;if(src)kk.source=src}
+        const src=srcValue(),mode=mMode;
+        const r=await api("addKid",name,mGroup,fs,list,src,mode).finally(()=>{state.pending--});
+        if(!state.kids.has(r.id))state.kids.set(r.id,{id:r.id,name,group:mGroup,active:true,firstSeen:fs,hasContact:!!r.hasContact,source:src,mode});
+        else{const kk=state.kids.get(r.id);kk.active=true;kk.hasContact=!!r.hasContact;if(src)kk.source=src;if(mode)kk.mode=mode}
         if(state.contacts&&list.length)state.contacts[r.id]=list;
         closeModal();
         if(!presentIds(state.sessions.get(date+"_"+slot)).includes(r.id)){setLocal(r.id,true);queue(()=>api("setPresent",date,slot,r.id,true))}
@@ -646,7 +670,7 @@ td.num{font-family:var(--num);font-weight:700}
     const list=state.contacts?state.contacts[id]||[]:null;
     const addBtn=`<button class="nophone" type="button" data-edit="${esc(id)}"><span>還沒有家長電話</span><b>＋ 補上</b></button>`;
     if(list&&list.length)return list.map((c,i)=>{const key=id+"_"+i,open=state.shown.has(key),f=c.faith||"";
-      const who=`<span class="who"><span class="rel">${esc(c.rel)}</span><span class="fpill" data-f="${esc(f)}"><span class="fdot" data-f="${esc(f)}"></span>${esc(f||"不清楚")}</span></span>`;
+      const who=`<span class="who"><span class="rel">${esc(c.rel)}</span>${c.name?`<span class="pname">${esc(c.name)}</span>`:""}<span class="fpill" data-f="${esc(f)}"><span class="fdot" data-f="${esc(f)}"></span>${esc(f||"不清楚")}</span></span>`;
       if(!hasPhone(c))return `<div class="phone">${who}<span class="nophonetxt">沒有電話</span></div>`;
       return `<div class="phone">${who}<span class="pnum">${esc(open?c.phone:maskPhone(c.phone))}</span>
       <button class="btn" type="button" data-show="${esc(key)}" aria-label="${open?"隱藏":"顯示"}${esc(k.name)}${esc(c.rel)}的電話">${open?"隱藏":"顯示"}</button>
@@ -669,7 +693,7 @@ td.num{font-family:var(--num);font-weight:700}
       :state.listFilter==="care"?all.filter(care):all;
     $("careHint").hidden=state.listFilter!=="care";
     $("kidList").innerHTML=kids.length?kids.map(([id,k])=>{const off=k.active===false;
-      return `<div class="row${off?" off":""}"><span class="nm">${esc(k.name)}</span><span class="pill new">${k.group==="3-6"?"3–6 歲":"0–3 歲"}</span><span class="hint" style="margin:0;font-size:16px">${seen.get(id)?"最後一次："+short(seen.get(id)):"還沒點過名"}</span>
+      return `<div class="row${off?" off":""}"><span class="nm">${esc(k.name)}</span><span class="pill new">${k.group==="3-6"?"3–6 歲":"0–3 歲"}</span>${modePill(k.mode)}<span class="hint" style="margin:0;font-size:16px">${seen.get(id)?"最後一次："+short(seen.get(id)):"還沒點過名"}</span>
       <button class="btn" type="button" data-edit="${esc(id)}">修改</button>
       <button class="btn ${off?"primary":"danger"}" type="button" data-hide="${esc(id)}">${off?"放回點名":"收起來"}</button>
       ${off?"":`<div class="phones">${phonesHtml(id,k)}</div>`}</div>`}).join("")
@@ -706,7 +730,7 @@ td.num{font-family:var(--num);font-weight:700}
       if(!sOpen)return;
       const old=new Map(sItems.map(c=>[c.s.id,c]));
       sItems=list.map(s=>{const o=old.get(s.id);const m=sMark.get(s.id)||{};
-        return o&&o.status!=="done"&&o.status!=="rejected"?Object.assign(o,{s}):{s,phone:s.phone,editing:false,called:!!m.called,choice:m.choice||null,armNo:false,status:"",msg:"",result:null}});
+        return o&&o.status!=="done"&&o.status!=="rejected"?Object.assign(o,{s}):{s,phone:s.phone,editing:false,called:!!m.called,choice:m.choice||null,mode:m.mode!=null?m.mode:(s.mode||""),armNo:false,status:"",msg:"",result:null}});
       // 剛處理好的卡片留在畫面上，讓老師看到結果
       old.forEach(c=>{if((c.status==="done"||c.status==="rejected")&&!list.some(s=>s.id===c.s.id))sItems.push(c)});
     }catch(e){console.error(e);if(sOpen&&!sItems.length)$("sList").innerHTML=`<div class="empty">讀不到報名資料，請確認網路後再打開一次。</div>`;sLoading=false;return}
@@ -728,11 +752,14 @@ td.num{font-family:var(--num);font-weight:700}
     const needChoice=!!s.sameNameKidId&&!c.choice;
     const canAccept=c.called&&!needChoice&&!busy;
     return `<article class="scard" data-sid="${id}">${head}
-      <div class="sphone"><span class="rel">${esc(s.rel)}</span><span class="pnum">${esc(c.phone)}</span>
+      <div class="sphone"><span class="rel">${esc(s.rel)}${s.parentName?" "+esc(s.parentName):""}</span><span class="pnum">${esc(c.phone)}</span>
         <button class="slink" type="button" data-sedit aria-expanded="${c.editing}">${c.editing?"改好了":"修改號碼"}</button></div>
       ${c.editing?`<div class="cprow"><label class="sr" for="sp-${id}">修改${esc(s.name)}家長的電話</label><input type="tel" inputmode="tel" id="sp-${id}" data-sphone maxlength="20" autocomplete="off" value="${esc(c.phone)}"></div>`:""}
       ${s.source?`<p class="ssrc">怎麼知道我們：${esc(s.source)}</p>`:""}
-      <p class="sagree">✓ 已同意教室規則・免責聲明${relTime(s.time)?"（"+esc(relTime(s.time))+"）":""}</p>
+      <div class="smode"><p id="sm-${id}">參與方式（家長希望：${MODE_TXT[s.mode]?esc(MODE_TXT[s.mode]):"沒有填"}）</p>
+        <div class="choice" role="group" aria-labelledby="sm-${id}">${["陪同","獨立"].map(m=>`<button type="button" data-smode="${m}" aria-pressed="${c.mode===m}">${MODE_TXT[m]}</button>`).join("")}</div>
+        <p class="hint">第一次來還不熟悉的孩子，可以先選陪同，之後再到名單修改。</p></div>
+      <p class="sagree">✓ 已同意幼兒參與暨安全照顧同意書（${["第 "+esc(s.version)+" 版",relTime(s.time)?esc(relTime(s.time)):""].filter(Boolean).join("・")}）</p>
       ${s.sameNameKidId?`<div class="ssame"><p>名單裡已經有「${esc(s.name)}」</p><div class="choice" role="group" aria-label="是不是同一個孩子">
         <button type="button" data-schoice="same" aria-pressed="${c.choice==="same"}">是同一個孩子（只補電話）</button>
         <button type="button" data-schoice="diff" aria-pressed="${c.choice==="diff"}">是不同孩子（另外新增）</button></div></div>`:""}
@@ -749,7 +776,7 @@ td.num{font-family:var(--num);font-weight:700}
     const box=$("sList");
     if(!sItems.length){box.innerHTML=sLoading?`<p class="hint">讀取中…</p>`:`<div class="empty">目前沒有等待確認的新朋友。</div>`;return}
     const f=document.activeElement,fsid=f&&f.closest&&f.closest("[data-sid]");
-    const keep=fsid?[fsid.dataset.sid,[...f.attributes].map(a=>a.name).find(n=>/^data-s(edit|phone|choice|call|ok|no)$/.test(n))]:null;
+    const keep=fsid?[fsid.dataset.sid,[...f.attributes].map(a=>a.name).find(n=>/^data-s(edit|phone|choice|mode|call|ok|no)$/.test(n))]:null;
     box.innerHTML=sItems.map(cardHtml).join("");
     if(keep&&keep[1]){const card=[...box.querySelectorAll("[data-sid]")].find(x=>x.dataset.sid===keep[0]);const el=card&&card.querySelector(`[${keep[1]}]`);if(el)el.focus()}
   }
@@ -765,6 +792,7 @@ td.num{font-family:var(--num);font-weight:700}
     const opts={date:state.date,slot:state.slot};
     if(s.sameNameKidId)opts.mergeKidId=c.choice==="same"?s.sameNameKidId:null;
     if(digits(c.phone)!==digits(s.phone))opts.phone=c.phone.trim();
+    if(c.mode)opts.mode=c.mode;
     c.status="busy";c.msg="";renderSignups();
     try{
       // 超過 40 秒還沒回應就先告訴老師，不要一直卡在「收下中」
@@ -772,9 +800,9 @@ td.num{font-family:var(--num);font-weight:700}
         new Promise((_,rej)=>setTimeout(()=>rej(new Error("TIMEOUT")),40000))]);
       c.status="done";c.result=r;sMark.delete(s.id);
       // 直接在畫面上加進名單並點好名，不用等下一次同步
-      const k=state.kids.get(r.kidId);
-      if(k){k.active=true;k.hasContact=true}
-      else state.kids.set(r.kidId,{id:r.kidId,name:r.name||s.name,group:r.group||s.group,active:true,firstSeen:r.firstSeen||"",hasContact:true,source:s.source||""});
+      const k=state.kids.get(r.kidId),mode=r.mode!=null?r.mode:(opts.mode||"");
+      if(k){k.active=true;k.hasContact=true;if(mode)k.mode=mode}
+      else state.kids.set(r.kidId,{id:r.kidId,name:r.name||s.name,group:r.group||s.group,active:true,firstSeen:r.firstSeen||"",hasContact:true,source:s.source||"",mode});
       const sk=opts.date+"_"+opts.slot;
       if(!state.sessions.has(sk))state.sessions.set(sk,{date:opts.date,slot:opts.slot,present:{}});
       state.sessions.get(sk).present[r.kidId]=true;
@@ -826,6 +854,7 @@ td.num{font-family:var(--num);font-weight:700}
   $("mName").addEventListener("keydown",e=>{if(e.key==="Enter")saveModal()});
   $("mGroup").addEventListener("click",e=>{const b=e.target.closest("button[data-g]");if(b){mGroup=b.dataset.g;syncChoice()}});
   $("mNew").addEventListener("click",()=>{mNew=!mNew;syncChoice()});
+  $("mMode").addEventListener("click",e=>{const b=e.target.closest("button[data-m]");if(b){mMode=mMode===b.dataset.m?"":b.dataset.m;syncChoice()}});
   $("modal").addEventListener("click",e=>{if(e.target===$("modal"))closeModal()});
   $("kidList").addEventListener("click",e=>{
     const ed=e.target.closest("[data-edit]");if(ed)openModal(ed.dataset.edit);
@@ -838,10 +867,10 @@ td.num{font-family:var(--num);font-weight:700}
   $("mContacts").addEventListener("click",e=>{
     const r=e.target.closest("[data-rel]");if(r){mContacts[+r.dataset.ci].rel=r.dataset.rel;drawContacts();return}
     const fb=e.target.closest("[data-faith]");if(fb){mContacts[+fb.dataset.ci].faith=fb.dataset.faith;drawContacts();return}
-    const d=e.target.closest("[data-cdel]");if(d){mContacts.splice(+d.dataset.cdel,1);if(!mContacts.length)mContacts=[{rel:"媽媽",phone:"",faith:""}];drawContacts()}
+    const d=e.target.closest("[data-cdel]");if(d){mContacts.splice(+d.dataset.cdel,1);if(!mContacts.length)mContacts=[blankContact("媽媽")];drawContacts()}
   });
   $("mContacts").addEventListener("input",e=>{const i=e.target.dataset.ci;if(i!=null&&e.target.tagName==="INPUT")mContacts[+i].phone=e.target.value});
-  $("mAddParent").addEventListener("click",()=>{if(mContacts.length<MAXC){mContacts.push({rel:mContacts.some(c=>c.rel==="媽媽")?"爸爸":"媽媽",phone:"",faith:""});drawContacts();$("mPhone"+(mContacts.length-1)).focus()}});
+  $("mAddParent").addEventListener("click",()=>{if(mContacts.length<MAXC){mContacts.push(blankContact(mContacts.some(c=>c.rel==="媽媽")?"爸爸":"媽媽"));drawContacts();$("mPhone"+(mContacts.length-1)).focus()}});
 
   $("signupBanner").addEventListener("click",openSignups);
   $("sClose").addEventListener("click",closeSignups);
@@ -857,6 +886,8 @@ td.num{font-family:var(--num);font-weight:700}
     if(e.target.closest("[data-sedit]")){c.editing=!c.editing;renderSignups();if(c.editing){const i=card.ownerDocument.getElementById("sp-"+c.s.id);if(i)i.focus()}return}
     const ch=e.target.closest("[data-schoice]");
     if(ch){c.choice=ch.dataset.schoice;c.msg="";sMark.set(c.s.id,{...(sMark.get(c.s.id)||{}),choice:c.choice});renderSignups();return}
+    const sm=e.target.closest("[data-smode]");
+    if(sm){c.mode=sm.dataset.smode;sMark.set(c.s.id,{...(sMark.get(c.s.id)||{}),mode:c.mode});renderSignups();return}
     if(e.target.closest("[data-sok]")){acceptS(c);return}
     if(e.target.closest("[data-sno]")){rejectS(c);return}
   });

@@ -26,12 +26,13 @@ There are two entry points:
 - **Newcomers**: tap "+" in the bottom-right corner to add a name. The child is tagged as a newcomer for that session
 - **Stats**: sessions this month, average attendance, children who came, newcomers, a bar chart of the last 12 sessions, and children who haven't come for more than 3 weeks
 - **Roster**: rename a child, change the age group, or hide children who no longer come (their records are kept)
+- **Participation mode** (optional): each child can be marked 家長陪同 (parent stays in the classroom) or 獨立參與 (child joins on their own after a teacher has assessed them; the parent stays in the main hall or 懇墾園). Set in the add/edit dialog (tap the selected option again to clear it) or when accepting a sign-up; shown as an orange 家長陪同 or blue 獨立參與 tag next to the age on the roster, and stored in 孩子名單 column 參與方式
 - **Parent contacts** (optional): up to two phone numbers per child (爸爸 / 媽媽 / 其他), added when a child is created or later from the roster. The roster masks the middle digits (`0912-•••-678`); tap 顯示 to reveal, 撥打 to call. A 缺電話 filter lists children with no number yet. Each parent can also have an optional faith status (基督徒 / 慕道中 / 還沒信 / 不清楚), set by teachers in the add/edit dialog only (never on the parent sign-up page); the 關懷家庭 filter lists families where a parent is 慕道中 or 還沒信.
 - **How families found us** (optional): 親友介紹 / 教會的人邀請 / 蒙式角落 / 經過看到 / Threads／IG / 傳單或海報 / 其他 (with a short note). Asked with a dropdown on the parent sign-up page and in the teacher add/edit dialog, stored in 孩子名單 column 怎麼知道我們, and counted on the stats tab Phone numbers are only fetched on the roster page and cleared from memory when you leave it
 - **Classroom PIN**: enter the 5-digit PIN once and the device remembers it. Every read and write is checked against the PIN on the Apps Script side, so someone who only has the link sees no data
 - Several devices can take attendance at once; the page syncs every 20 seconds
-- **Parent self-registration**: parents scan the QR code and fill in the child's name, age group, their relation (爸爸 / 媽媽 / 其他) and mobile number, then agree to the classroom rules (教室規則) and disclaimer (免責聲明). They get a 4-digit check-in code (報到碼) to show the teacher. The child does **not** appear on the roll until a teacher confirms
-- **Teacher confirmation**: when sign-ups are waiting, the roll-call page shows an orange banner "N 位新朋友等你確認". Each card shows the code and the full phone number. The teacher taps ① 撥打確認 to call the parent; only after that does ② 有響，收下 become active. Accepting adds the child (tagged as a newcomer), saves the parent's number and marks the child present for the session on screen. The number can be corrected on the card first. If a child with the same name already exists, the teacher picks "same child (just add the phone)" or "different child" (added as e.g. `小明（2）`, rename it on the roster page). 不收 needs a second tap to confirm. Sign-ups not handled within 14 days are marked 過期 and hidden
+- **Parent self-registration**: parents scan the QR code and fill in the child's name (幼兒姓名) and age group; their relation (爸爸 / 媽媽 / 其他), their own name (家長姓名) and phone number; how the child should take part (幼兒參與方式: 家長陪同參與 or 希望孩子獨立參與, independent only after a teacher agrees); and, optionally, how they found us. They then open the single consent document 幼兒參與暨安全照顧同意書 and tick one box confirming they have read it. Submit stays disabled until every required field is filled and the box is ticked; the submission time is recorded as the consent record. They get a 4-digit check-in code (報到碼) to show the teacher. "再幫另一個孩子報名" keeps the phone, relation and parent name. The child does **not** appear on the roll until a teacher confirms
+- **Teacher confirmation**: when sign-ups are waiting, the roll-call page shows an orange banner "N 位新朋友等你確認". Each card shows the code, the relation with the parent's name (e.g. 媽媽 王小美), the full phone number, the consent version and time, and a 參與方式 box preselected to what the parent asked for; the teacher can switch it (e.g. pick 陪同 for a child who is new) before accepting. The teacher taps ① 撥打確認 to call the parent; only after that does ② 有響，收下 become active. Accepting adds the child (tagged as a newcomer) with the chosen participation mode, saves the parent's number and name and marks the child present for the session on screen. The number can be corrected on the card first. If a child with the same name already exists, the teacher picks "same child (just add the phone; the mode and a missing parent name are filled in too)" or "different child" (added as e.g. `小明（2）`, rename it on the roster page). 不收 needs a second tap to confirm. Sign-ups not handled within 14 days are marked 過期 and hidden
 
 ## First-time setup (about 10 minutes)
 
@@ -57,14 +58,17 @@ The 設定 tab holds key/value rows (column A = key, column B = value). Edit col
 
 | Key | Meaning | Default |
 |---|---|---|
-| 教室規則 | Classroom rules shown on the parent page (line breaks are kept) | empty: the page shows a placeholder |
-| 免責聲明 | Disclaimer shown on the parent page | empty: the page shows a placeholder |
-| 規則版本 | Version of the rules text. Raise it (e.g. `1` → `2`) whenever you change the wording; each sign-up records the version the parent agreed to, and a parent with an old page open is asked to reload | `1` |
+| 同意書 | The consent document 幼兒參與暨安全照顧同意書 shown on the parent page (line breaks are kept) | blank: the built-in text in `CONSENT_DEFAULT_` (`src/Code.gs`) |
+| 同意書版本 | Version of the consent text. Raise it (e.g. `2` → `3`) whenever you change the wording; each sign-up records the version the parent agreed to, and a parent with an old page open is asked to reload | `2` |
 | 每日報名上限 | Maximum sign-ups per day (spam guard) | `30` |
 
-The 報名待確認 tab has one row per sign-up: 報名id, 報到碼, 孩子名字, 年齡層, 稱呼, 電話, 同意規則版本, 送出時間, 狀態 (待確認 / 收下 / 不收 / 過期), 處理時間, 孩子id. All cells are plain text.
+A blank value in column B means "use the default". When the code adds a new key, an existing 設定 tab gets the key appended automatically with a blank value, so the default applies until you type your own. The old keys 教室規則, 免責聲明 and 規則版本 (from the earlier two-document version) are no longer read; they can be left in place or deleted. The consent version starts at `2`, so a parent page still showing the old two checkboxes is refused with "規則剛剛更新了" and asked to reload.
 
-**Privacy**: the parent page needs no PIN, so it is deliberately limited. Its only backend calls are `getSignupInfo` (rules text) and `submitSignup` (writes one row and returns only the 報到碼). It cannot read the roster, phone numbers or other sign-ups. A hidden honeypot field silently drops bot submissions. Listing, accepting and rejecting sign-ups all require the classroom PIN. Rejected and expired rows still contain the parent's phone number; delete old rows from the sheet from time to time.
+The 報名待確認 tab has one row per sign-up: 報名id, 報到碼, 孩子名字, 年齡層, 稱呼, 電話, 同意規則版本 (the consent version), 送出時間, 狀態 (待確認 / 收下 / 不收 / 過期), 處理時間, 孩子id, 怎麼知道我們, 家長姓名, 參與方式 (what the parent asked for: 陪同 / 獨立). All cells are plain text. Older sheets get the missing column headers added at the end automatically.
+
+Other columns added at the end of existing tabs (nothing is shifted): 孩子名單 column 8 參與方式 (the mode the teacher settled on: 陪同 / 獨立 / blank) and 家長聯絡 column 7 家長姓名 (taken from the sign-up; teacher edits of the phone numbers keep it).
+
+**Privacy**: the parent page needs no PIN, so it is deliberately limited. Its only backend calls are `getSignupInfo` (consent text and version) and `submitSignup` (writes one row and returns only the 報到碼). It cannot read the roster, phone numbers or other sign-ups. A hidden honeypot field silently drops bot submissions. Listing, accepting and rejecting sign-ups all require the classroom PIN. Rejected and expired rows still contain the parent's phone number; delete old rows from the sheet from time to time.
 
 ## Deployment flow
 
@@ -126,12 +130,13 @@ npx @google/clasp@2.4.2 push         # push to the Apps Script test deployment (
 
 | File | Covers |
 |---|---|
-| `test_signup_flow.py` | Parent sign-up validation and honeypot, teacher banner, call-then-accept, reject, same-name merge, idempotent accept, 14-day expiry, daily cap, PIN checks |
+| `test_signup_flow.py` | Parent sign-up validation (consent, parent name, mode, version) and honeypot, teacher banner, changing the mode before accepting, call-then-accept, reject, same-name merge, idempotent accept, 14-day expiry, daily cap, PIN checks |
+| `test_participation.py` | Parent name and mode required on the sign-up page, mode on the pending card, roster tags, add/edit dialog mode (set, change, clear), parent names surviving a teacher's phone edit |
 | `test_contacts.py` | Parent phones in the add/edit dialog, masking, 撥打 link, 缺電話 filter, deleting a number |
 | `test_faith.py` | Parent faith status, 關懷家庭 filter, editing |
 | `test_source.py` | How families found us (sign-up dropdown, teacher dialog, carried over on accept, stats) |
 | `test_date_slot.py` | Date and session stay in sync (clock fixed to a Monday) |
-| `test_migration.py` | Old 家長聯絡 sheets get the new columns without losing data |
+| `test_migration.py` | Old sheets are upgraded in place: 家長聯絡 gets 孩子名字 / 信仰 / 家長姓名, 設定 gets the missing consent keys, 報名待確認 and 孩子名單 get their new headers |
 
 ```bash
 pip install playwright && python -m playwright install chromium
@@ -144,7 +149,7 @@ The **Test** workflow (`.github/workflows/test.yml`) runs the syntax check and t
 ## Troubleshooting
 
 - **"No HTML file named index was found"** (or `signup`): that HTML file is missing from the Apps Script project (step 4)
-- **Parent page says "規則剛剛更新了"**: 規則版本 changed after the parent opened the page; reloading fixes it
+- **Parent page says "規則剛剛更新了"**: 同意書版本 changed after the parent opened the page; reloading fixes it
 - **"連不上，請確認網路" after entering the PIN on GitHub Pages**: the deployment's access is not **Anyone**. Open the `/exec` URL in a private window; if you see a Google sign-in page, edit the deployment and set Who has access to **Anyone**
 - **"出錯了：…" on the PIN screen**: the backend returned an error. Check **Executions** in the Apps Script editor for details. Common causes: `PIN` script property not set, or `setup` not run yet
 - **Dates show as "NaN/NaN"**: Google Sheets turned text such as `2026-11-16` or `0-3` into dates. The current code writes these cells as plain text; run `setup` once to repair older rows

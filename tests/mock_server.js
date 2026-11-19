@@ -1,5 +1,5 @@
 // Mock Apps Script for tests: runs the real src/Code.gs against in-memory sheets and serves
-// src/index.html and src/signup.html. PORT (default 8766); OLD_CONTACTS=1 seeds an old-format 家長聯絡 sheet.
+// src/index.html and src/signup.html. PORT (default 8766); OLD_CONTACTS=1 seeds old-format 孩子名單/家長聯絡/設定/報名待確認 sheets.
 const fs=require('fs'),vm=require('vm'),http=require('http');
 const path=require('path');
 const ROOT=path.join(__dirname,'..','src')+path.sep;
@@ -38,6 +38,11 @@ ctx.__sheets=sheets;vm.createContext(ctx);vm.runInContext(fs.readFileSync(ROOT+'
 if(process.env.OLD_CONTACTS){ // 模擬舊版家長聯絡（沒有孩子名字欄）
   sheets['孩子名單']={name:'孩子名單',rows:[['id','名字','年齡層','顯示','第一次來','建立時間'],['k1','舊小明','0-3','TRUE','','']]};
   sheets['家長聯絡']={name:'家長聯絡',rows:[['孩子id','稱呼','電話','更新時間'],['k1','媽媽','0912-111-222','x']]};
+  // 舊版設定（教室規則＋免責聲明）和舊版報名表（12 欄，沒有家長姓名、參與方式）
+  sheets['設定']={name:'設定',rows:[['項目','內容'],['教室規則','舊規則'],['免責聲明',''],['規則版本','1'],['每日報名上限','30']]};
+  const now=formatDate(new Date(),'','yyyy-MM-dd HH:mm:ss');
+  sheets['報名待確認']={name:'報名待確認',rows:[['報名id','報到碼','孩子名字','年齡層','稱呼','電話','同意規則版本','送出時間','狀態','處理時間','孩子id','怎麼知道我們'],
+    ['s1','1234','舊報名','0-3','爸爸','0922-333-444','1',now,'待確認','','','']]};
 }
 vm.runInContext('setup()',ctx);
 const page=f=>fs.readFileSync(ROOT+f,'utf8').replace('__APPS_SCRIPT_URL__','http://localhost:'+PORT+'/api').replace('/^https:\\/\\//','/^http/');

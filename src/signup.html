@@ -59,8 +59,8 @@ summary::after{content:"展開 ▾";font-size:15px;color:var(--muted)}
 details[open] summary::after{content:"收起 ▴"}
 .doc{padding:0 14px 12px;font-size:17px;white-space:pre-wrap;word-break:break-word;max-height:46vh;overflow-y:auto}
 .doc.empty{color:var(--muted)}
-.agree{display:flex;align-items:center;gap:12px;min-height:56px;width:100%;text-align:left;border:3px solid var(--line);background:#fff;border-radius:18px;padding:8px 14px;font-size:19px;box-shadow:0 4px 0 var(--line)}
-.agree .box{flex:none;width:30px;height:30px;border-radius:10px;border:3px solid var(--sky);background:#fff}
+.agree{display:flex;align-items:flex-start;gap:12px;min-height:56px;width:100%;text-align:left;border:3px solid var(--line);background:#fff;border-radius:18px;padding:8px 14px;font-size:19px;box-shadow:0 4px 0 var(--line)}
+.agree .box{flex:none;margin-top:2px;width:30px;height:30px;border-radius:10px;border:3px solid var(--sky);background:#fff}
 .agree[aria-checked="true"]{border-color:var(--mint);background:var(--mint-soft);box-shadow:0 4px 0 var(--mint)}
 .agree[aria-checked="true"] .box{border-color:var(--mint);background:var(--mint) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 12.5l4.5 4.5L19 7.5'/%3E%3C/svg%3E") center/20px no-repeat}
 
@@ -73,6 +73,18 @@ details[open] summary::after{content:"收起 ▴"}
 .submit:active{transform:translateY(4px);box-shadow:0 2px 0 var(--sky-d)}
 .submit:disabled{background:#B9CFE0;box-shadow:0 6px 0 #A3BCD0;cursor:not-allowed;transform:none}
 .submitnote{text-align:center;margin-top:10px}
+.thanks{text-align:center;margin:18px 6px 0;color:var(--sky-d);font-size:17px;line-height:1.7}
+.sub{border-top:2px dashed var(--line);padding-top:12px;margin-top:2px;display:flex;flex-direction:column;gap:10px}
+/* 幼兒參與方式：兩張大卡片（單選） */
+.modes{display:flex;flex-direction:column;gap:10px}
+.mode{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:3px solid var(--line);background:#fff;border-radius:20px;padding:12px 14px;box-shadow:0 4px 0 var(--line)}
+.mode .dot{flex:none;width:28px;height:28px;border-radius:50%;border:3px solid var(--sky);background:#fff}
+.mode .t{display:block;font-size:21px;line-height:1.3}
+.mode .s{display:block;font-size:15px;color:var(--muted);line-height:1.45;margin-top:2px}
+.mode[aria-checked="true"]{border-color:var(--sun-d);background:#FFF6D9;box-shadow:0 4px 0 var(--sun-d)}
+.mode[aria-checked="true"] .dot{border-color:var(--sun-d);background:radial-gradient(circle,var(--ink) 0 6px,var(--sun) 7px)}
+.mode:active{transform:translateY(3px);box-shadow:0 1px 0 var(--line)}
+.agreenote{margin:0;font-size:15px;color:var(--muted)}
 
 /* 送出後 */
 .done{text-align:center;align-items:center;padding:26px 18px 22px}
@@ -104,15 +116,14 @@ details[open] summary::after{content:"收起 ▴"}
 
   <form id="form" novalidate>
     <div class="card">
-      <label class="q" for="name">孩子的名字（小名也可以）<span class="req">必填</span></label>
+      <label class="q" for="name">幼兒姓名（小名也可以）<span class="req">必填</span></label>
       <input class="text" type="text" id="name" name="name" maxlength="20" autocomplete="off" required>
-    </div>
-
-    <div class="card">
-      <span class="q" id="groupLabel">年齡<span class="req">必填</span></span>
-      <div class="choice" id="group" role="group" aria-labelledby="groupLabel">
-        <button type="button" data-v="0-3" aria-pressed="false">0–3 歲</button>
-        <button type="button" data-v="3-6" aria-pressed="false">3–6 歲</button>
+      <div class="sub">
+        <span class="q" id="groupLabel">年齡<span class="req">必填</span></span>
+        <div class="choice" id="group" role="group" aria-labelledby="groupLabel">
+          <button type="button" data-v="0-3" aria-pressed="false">0–3 歲</button>
+          <button type="button" data-v="3-6" aria-pressed="false">3–6 歲</button>
+        </div>
       </div>
     </div>
 
@@ -123,12 +134,23 @@ details[open] summary::after{content:"收起 ▴"}
         <button type="button" data-v="媽媽" aria-pressed="false">媽媽</button>
         <button type="button" data-v="其他" aria-pressed="false">其他</button>
       </div>
+      <div class="sub">
+        <label class="q" for="parentName">家長姓名<span class="req">必填</span></label>
+        <input class="text" type="text" id="parentName" name="parentName" maxlength="20" autocomplete="name" required>
+      </div>
+      <div class="sub">
+        <label class="q" for="phone">聯絡電話<span class="req">必填</span></label>
+        <input class="text" type="tel" id="phone" name="phone" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="0912-345-678" required aria-describedby="phoneHint">
+        <p class="hint" id="phoneHint">孩子上課期間請保持手機暢通，老師會撥這支電話確認。</p>
+      </div>
     </div>
 
     <div class="card">
-      <label class="q" for="phone">您的手機號碼<span class="req">必填</span></label>
-      <input class="text" type="tel" id="phone" name="phone" inputmode="tel" maxlength="20" autocomplete="tel" placeholder="0912-345-678" required aria-describedby="phoneHint">
-      <p class="hint" id="phoneHint">老師會撥這支電話確認，請帶在身上。</p>
+      <span class="q" id="modeLabel">幼兒參與方式<span class="req">必選</span></span>
+      <div class="modes" id="mode" role="radiogroup" aria-labelledby="modeLabel">
+        <button type="button" class="mode" role="radio" aria-checked="false" data-v="陪同"><span class="dot" aria-hidden="true"></span><span><span class="t">家長陪同參與</span><span class="s">家長和孩子一起在教室</span></span></button>
+        <button type="button" class="mode" role="radio" aria-checked="false" data-v="獨立"><span class="dot" aria-hidden="true"></span><span><span class="t">希望孩子獨立參與</span><span class="s">經老師評估同意後才會獨立參與；家長仍須留在主堂或懇墾園</span></span></button>
+      </div>
     </div>
 
     <div class="card">
@@ -148,19 +170,12 @@ details[open] summary::after{content:"收起 ▴"}
     </div>
 
     <div class="card">
-      <details id="rulesBox">
-        <summary>教室規則</summary>
-        <div class="doc empty" id="rulesText">讀取中…</div>
+      <details id="consentBox">
+        <summary>幼兒參與暨安全照顧同意書</summary>
+        <div class="doc empty" id="consentText">讀取中…</div>
       </details>
-      <button type="button" class="agree" role="checkbox" aria-checked="false" id="agreeRules"><span class="box" aria-hidden="true"></span><span>我已閱讀並同意教室規則</span></button>
-    </div>
-
-    <div class="card">
-      <details id="waiverBox">
-        <summary>免責聲明</summary>
-        <div class="doc empty" id="waiverText">讀取中…</div>
-      </details>
-      <button type="button" class="agree" role="checkbox" aria-checked="false" id="agreeWaiver"><span class="box" aria-hidden="true"></span><span>我已閱讀並同意免責聲明</span></button>
+      <button type="button" class="agree" role="checkbox" aria-checked="false" id="agreeConsent" aria-describedby="agreeNote"><span class="box" aria-hidden="true"></span><span>本人已閱讀並理解上述同意書，願意配合相關安全規範，並確認所提供資料正確。</span></button>
+      <p class="agreenote" id="agreeNote">送出時間會一併記錄，作為同意紀錄。</p>
     </div>
 
     <div class="hp" aria-hidden="true">
@@ -170,7 +185,8 @@ details[open] summary::after{content:"收起 ▴"}
 
     <p class="err" id="err" role="alert"></p>
     <button type="submit" class="submit" id="submit" disabled>送出，給老師確認</button>
-    <p class="hint submitnote" id="submitNote">兩個「我已閱讀並同意」都勾好，就可以送出。</p>
+    <p class="hint submitnote" id="submitNote">必填的都填好、勾選同意書，就可以送出。</p>
+    <p class="thanks">謝謝您與我們一起守護孩子，讓獨立在安全中發生，讓成長在愛與尊重中延續。</p>
   </form>
 
   <section id="done" hidden aria-live="polite">
@@ -189,9 +205,8 @@ details[open] summary::after{content:"收起 ▴"}
 <script>
 (function(){
   const $=id=>document.getElementById(id);
-  const RULES_EMPTY="（教會還沒有填寫教室規則，有問題請直接問現場老師。）";
-  const WAIVER_EMPTY="（教會還沒有填寫免責聲明，有問題請直接問現場老師。）";
-  const form={group:"",rel:"",src:"",agreeRules:false,agreeWaiver:false};
+  const CONSENT_EMPTY="（教會還沒有填寫同意書，有問題請直接問現場老師。）";
+  const form={group:"",rel:"",mode:"",src:"",agreeConsent:false};
   let version=null,sending=false;
 
   // ---------- 呼叫後端（不用密碼，只能送出報名） ----------
@@ -215,40 +230,55 @@ details[open] summary::after{content:"收起 ▴"}
   }
   api("getSignupInfo").then(info=>{
     version=String(info&&info.version||"");
-    setDoc($("rulesText"),info&&info.rules,RULES_EMPTY);
-    setDoc($("waiverText"),info&&info.waiver,WAIVER_EMPTY);
+    setDoc($("consentText"),info&&info.consent,CONSENT_EMPTY);
   }).catch(e=>{
     console.error(e);
-    $("rulesText").textContent=$("waiverText").textContent="讀不到內容，請重新整理頁面，或直接問現場老師。";
+    $("consentText").textContent="讀不到內容，請重新整理頁面，或直接問現場老師。";
   });
 
   // ---------- 表單 ----------
+  const val=id=>$(id).value.trim();
+  // 必填的都有了（長度等細節送出時再檢查）
+  const filled=()=>!!(val("name")&&form.group&&form.rel&&val("parentName")&&$("phone").value.replace(/\D/g,"").length>=6&&form.mode);
   function draw(){
     [["group",form.group],["rel",form.rel]].forEach(([id,v])=>{
       $(id).querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.v===v)));
     });
+    $("mode").querySelectorAll("[role=radio]").forEach(b=>{const on=b.dataset.v===form.mode;b.setAttribute("aria-checked",String(on));b.tabIndex=on||(!form.mode&&b===$("mode").firstElementChild)?0:-1});
     $("srcOther").hidden=form.src!=="其他";
-    $("agreeRules").setAttribute("aria-checked",String(form.agreeRules));
-    $("agreeWaiver").setAttribute("aria-checked",String(form.agreeWaiver));
-    const ready=form.agreeRules&&form.agreeWaiver;
+    $("agreeConsent").setAttribute("aria-checked",String(form.agreeConsent));
+    const ready=filled()&&form.agreeConsent;
     $("submit").disabled=!ready||sending;
     $("submit").textContent=sending?"送出中…":"送出，給老師確認";
     $("submitNote").hidden=ready;
   }
   $("group").addEventListener("click",e=>{const b=e.target.closest("button[data-v]");if(b){form.group=b.dataset.v;draw()}});
   $("rel").addEventListener("click",e=>{const b=e.target.closest("button[data-v]");if(b){form.rel=b.dataset.v;draw()}});
+  $("mode").addEventListener("click",e=>{const b=e.target.closest("[role=radio]");if(b){form.mode=b.dataset.v;draw()}});
+  // 單選的方向鍵：上下左右換選項
+  $("mode").addEventListener("keydown",e=>{
+    if(!/^Arrow(Up|Down|Left|Right)$/.test(e.key))return;
+    e.preventDefault();
+    const list=[...$("mode").querySelectorAll("[role=radio]")];
+    const i=Math.max(0,list.findIndex(b=>b.dataset.v===form.mode));
+    const next=list[(i+(/Up|Left/.test(e.key)?list.length-1:1))%list.length];
+    form.mode=next.dataset.v;draw();next.focus();
+  });
+  ["name","parentName","phone"].forEach(id=>$(id).addEventListener("input",draw));
   $("src").addEventListener("change",e=>{form.src=e.target.value;draw();if(form.src==="其他")$("srcOther").focus()});
-  $("agreeRules").addEventListener("click",()=>{form.agreeRules=!form.agreeRules;draw()});
-  $("agreeWaiver").addEventListener("click",()=>{form.agreeWaiver=!form.agreeWaiver;draw()});
+  $("agreeConsent").addEventListener("click",()=>{form.agreeConsent=!form.agreeConsent;draw()});
 
   function check(){
-    const name=$("name").value.trim();
-    if(!name)return ["請填孩子的名字。","name"];
+    const name=val("name"),parent=val("parentName");
+    if(!name)return ["請填幼兒姓名。","name"];
     if(Array.from(name).length>20)return ["名字太長了，20 個字以內就好。","name"];
     if(!form.group)return ["請選孩子的年齡。","group"];
     if(!form.rel)return ["請選您是孩子的誰。","rel"];
+    if(!parent)return ["請填家長姓名。","parentName"];
+    if(Array.from(parent).length>20)return ["家長姓名太長了，20 個字以內就好。","parentName"];
     if($("phone").value.replace(/\D/g,"").length<6)return ["請填您的手機號碼。","phone"];
-    if(!form.agreeRules||!form.agreeWaiver)return ["請先閱讀並同意教室規則和免責聲明。","agreeRules"];
+    if(!form.mode)return ["請選幼兒參與方式。","mode"];
+    if(!form.agreeConsent)return ["請先閱讀並勾選同意書。","agreeConsent"];
     return null;
   }
   $("form").addEventListener("submit",async e=>{
@@ -257,23 +287,23 @@ details[open] summary::after{content:"收起 ▴"}
     const bad=check();
     if(bad){$("err").textContent=bad[0];const el=$(bad[1]);(el.querySelector("button")||el).focus();return}
     $("err").textContent="";sending=true;draw();
-    const name=$("name").value.trim(),rel=form.rel;
+    const name=val("name"),rel=form.rel,parentName=val("parentName");
     try{
-      const r=await api("submitSignup",{name,group:form.group,rel,phone:$("phone").value.trim(),
-        agreeRules:form.agreeRules,agreeWaiver:form.agreeWaiver,version,website:$("website").value,
-        source:form.src==="其他"?($("srcOther").value.trim()?"其他："+$("srcOther").value.trim():"其他"):form.src});
+      const r=await api("submitSignup",{name,group:form.group,rel,parentName,phone:val("phone"),mode:form.mode,
+        agreeConsent:form.agreeConsent,version,website:$("website").value,
+        source:form.src==="其他"?(val("srcOther")?"其他："+val("srcOther"):"其他"):form.src});
       $("doneCode").textContent=String(r&&r.code||"");
-      $("doneWho").textContent=name+"・"+rel;
+      $("doneWho").textContent=name+"・"+rel+" "+parentName;
       $("form").hidden=true;$("done").hidden=false;
       window.scrollTo(0,0);$("doneTitle").focus();
     }catch(err){console.error(err);$("err").textContent=msgOf(err)}
     finally{sending=false;draw()}
   });
 
-  // 同一位家長再報另一個孩子：名字、年齡、同意要重新填，電話和稱呼留著
+  // 同一位家長再報另一個孩子：幼兒姓名、年齡、參與方式、同意要重新填，電話、稱呼、家長姓名留著
   $("again").addEventListener("click",()=>{
-    $("name").value="";form.group="";form.agreeRules=false;form.agreeWaiver=false;
-    $("rulesBox").open=false;$("waiverBox").open=false;$("err").textContent="";
+    $("name").value="";form.group="";form.mode="";form.agreeConsent=false;
+    $("consentBox").open=false;$("err").textContent="";
     $("done").hidden=true;$("form").hidden=false;draw();
     window.scrollTo(0,0);$("name").focus();
   });
