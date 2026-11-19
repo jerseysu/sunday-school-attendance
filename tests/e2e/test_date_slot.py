@@ -14,7 +14,12 @@ with sync_playwright() as p:
     for name, want in [("週三", "11 月 11 日（三）"), ("週四", "11 月 12 日（四）"), ("週六", "11 月 14 日（六）"), ("主日", "11 月 15 日（日）")]:
         pg.click(f"#slots button:text-is('{name}')")
         ok(date() == want and slot() == name, f"{name} jumps to {want} in the same Mon–Sun week")
-    pg.click("#changeDate"); pg.fill("#dateInput", "2026-11-06"); pg.dispatch_event("#dateInput", "change")
+    before = date()
+    pg.click("#changeDate")
+    ok(date() == before and pg.is_visible("#dateText"), "tapping 改日期 keeps the date on screen")
+    ok(pg.input_value("#dateInput") == "2026-11-15", "the date picker starts on the current roll-call date")
+    pg.keyboard.press("Escape")
+    pg.fill("#dateInput", "2026-11-06"); pg.dispatch_event("#dateInput", "change")
     ok(date() == "11 月 5 日（四）" and slot() == "週四", "picking a Friday snaps back to Thursday")
     pg.click("#slots button:text-is('主日')")
     ok(date() == "11 月 8 日（日）", "主日 from that week is the following Sunday, not the past one")
