@@ -50,9 +50,9 @@ h1{font-size:36px;margin:0;letter-spacing:2px;font-weight:400;line-height:1.15}
 .dateline{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
 .datebig{font-size:28px}
 .changedate{font-size:16px;border:2px solid var(--line);background:#fff;border-radius:12px;padding:2px 12px;color:var(--muted)}
-/* 改日期：透明的日期欄位蓋在按鈕上，手機一點就跳出系統的日期選擇器，上面的日期不會被換掉或消失 */
-.changedate{position:relative;overflow:hidden;display:inline-flex;align-items:center;cursor:pointer}
-#dateInput{position:absolute;inset:0;width:100%;height:100%;opacity:0;border:0;padding:0;margin:0;font-size:16px;cursor:pointer;-webkit-appearance:none;appearance:none}
+/* 日期選單：按「改日期」在旁邊出現；給它固定的大小，手機上才不會變成空白的一小格 */
+#dateInput{font:inherit;font-size:18px;min-width:170px;min-height:40px;box-sizing:border-box;padding:4px 10px;border:2px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+#dateInput[hidden]{display:none}
 .slots{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;max-width:520px}
 .slots button{border:3px solid var(--line);background:#fff;border-radius:16px;padding:8px 0;font-size:22px;color:var(--muted)}
 .slots button[aria-pressed="true"]{border-color:var(--sun-d);background:var(--sun);color:var(--ink)}
@@ -271,7 +271,8 @@ td.num{font-family:var(--num);font-weight:700}
       <div class="when">
         <div class="dateline">
           <span class="datebig" id="dateText"></span>
-          <label class="changedate" id="changeDate">改日期<input type="date" id="dateInput" aria-label="選擇點名日期"></label>
+          <button class="changedate" id="changeDate" type="button" aria-expanded="false" aria-controls="dateInput">改日期</button>
+          <input type="date" id="dateInput" aria-label="選擇點名日期" hidden>
           <span class="syncing" id="sync"></span>
         </div>
         <div class="slots" id="slots"></div>
@@ -848,8 +849,12 @@ td.num{font-family:var(--num);font-weight:700}
     const end=parse(state.date);end.setDate(end.getDate()+(7-end.getDay())%7);const today=iso(new Date());
     state.date=backTo(iso(end)<today?iso(end):today,s.dow);render()});
   $("roll").addEventListener("click",e=>{const b=e.target.closest(".kid");if(b)toggle(b.dataset.id)});
-  // 電腦版：點按鈕任何位置都打開日期選擇器（不支援的瀏覽器就照一般點日期欄位的方式）
-  $("dateInput").addEventListener("click",e=>{try{e.target.showPicker()}catch(_){}});
+  // 改日期：先放好目前的日期再顯示，日期欄位才不會是空白的
+  $("changeDate").addEventListener("click",()=>{
+    const i=$("dateInput"),open=i.hidden;
+    i.value=state.date;i.max=iso(new Date());i.hidden=!open;$("changeDate").setAttribute("aria-expanded",String(open));
+    if(open){i.focus();try{i.showPicker()}catch(_){}}
+  });
   $("dateInput").addEventListener("change",e=>{if(e.target.value){const b=snapToSession(e.target.value);state.date=b.date;state.slot=b.slot;e.target.value=b.date;render()}});
   $("newBtn").addEventListener("click",()=>openModal());
   $("mCancel").addEventListener("click",closeModal);
